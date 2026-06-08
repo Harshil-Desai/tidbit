@@ -1,26 +1,202 @@
 @import "tailwindcss";
 
+/* ── Dark mode: class-based (.dark on <html>) ─────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Design tokens ────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* warm paper palette */
+  --paper:      #fff8f1;
+  --paper-2:    #fbeee2;
+  --card:       #ffffff;
+  --ink:        #2c2230;
+  --ink-2:      #6f6171;
+  --ink-3:      #a99caa;
+  --line:       #efe1d4;
+  --line-soft:  #f6ece1;
+
+  /* shadows */
+  --shadow:     14px 22px 50px -28px rgba(74, 45, 60, 0.45);
+  --shadow-sm:  6px 10px 24px -16px rgba(74, 45, 60, 0.38);
+
+  /* shape */
+  --radius:     22px;
+  --radius-sm:  12px;
+  --radius-pill: 999px;
+
+  /* brand accent — orange (last palette) */
+  --brand:      #ed7a1e;
+  --brand-ink:  #c45f08;
+  --brand-soft: #fcecd8;
+
+  /* misc */
+  --dot: rgba(120, 96, 110, 0.10);
+}
+
+.dark {
+  --paper:      #18131c;
+  --paper-2:    #211924;
+  --card:       #241c29;
+  --ink:        #f7eef3;
+  --ink-2:      #c2b3c4;
+  --ink-3:      #8a7c8d;
+  --line:       #392f40;
+  --line-soft:  #2e2634;
+  --shadow:     14px 22px 54px -26px rgba(0, 0, 0, 0.70);
+  --shadow-sm:  6px 12px 26px -16px rgba(0, 0, 0, 0.60);
+  --dot:        rgba(255, 255, 255, 0.05);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-body, ui-sans-serif, system-ui, sans-serif);
+  --font-mono: var(--font-mono-stack, ui-monospace, "JetBrains Mono", Menlo, monospace);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dot) 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection { background: var(--brand); color: #fff; }
+
+/* ── Typography helpers ───────────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display, Georgia, serif);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+/* ── Focus ring ───────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2.5px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Skip link ────────────────────────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus { top: 1rem; }
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+  border: 3px solid var(--paper);
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
+
+/* ── Card surface ─────────────────────────────────────────────────────────── */
+.tidbit-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* ── Pill ─────────────────────────────────────────────────────────────────── */
+.tidbit-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 5px 11px;
+}
+
+/* ── High-contrast mode ───────────────────────────────────────────────────── */
+@media (forced-colors: active) {
+  * { border-color: ButtonBorder !important; }
+  button, a { forced-color-adjust: none; }
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes float-up {
+  from { transform: translateY(14px); }
+  to   { transform: translateY(0); }
+}
+@keyframes pop-in {
+  from { transform: translateY(10px) scale(0.985); }
+  to   { transform: translateY(0) scale(1); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes overlay-in {
+  from { opacity: 0.4; }
+  to   { opacity: 1; }
+}
+@keyframes sheet-in {
+  from { transform: translateY(-10px) scale(0.97); }
+  to   { transform: translateY(0) scale(1); }
+}
+@keyframes heart-burst {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.38); }
+  100% { transform: scale(1); }
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.anim-float { animation: float-up 0.55s cubic-bezier(0.22, 0.68, 0, 1) both; }
+.anim-pop   { animation: pop-in  0.45s cubic-bezier(0.22, 0.68, 0, 1) both; }
+.skeleton   { animation: skeleton-pulse 1.6s ease-in-out infinite; background: var(--line); border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+}
+
+/* ── Slide-up (drawer) ────────────────────────────────────────────────────── */
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive guide grid ────────────────────────────────────────────────── */
+.guide-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+@media (max-width: 920px) {
+  .guide-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 620px) {
+  .guide-grid { grid-template-columns: 1fr !important; }
 }

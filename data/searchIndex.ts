@@ -1,0 +1,229 @@
+export type SearchEntry = {
+  topicSlug: string;
+  topicTitle: string;
+  topicIcon: string;
+  topicColor: string;
+  conceptId: string;
+  conceptTitle: string;
+  category: string;
+};
+
+// conceptId matches the ?concept= query param used when linking into an encyclopedia.
+// For encyclopedias with numeric ids we use the number as a string.
+// For encyclopedias with string ids (CloudArchitecture) we use those directly.
+// For encyclopedias with no id (SystemDesign, DesignPatterns) we slugify the title/name.
+function slug(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export const searchIndex: SearchEntry[] = [
+  // ─── System Design ──────────────────────────────────────────────────────────
+  ...([
+    ["Scalability",        "Horizontal vs Vertical Scaling"],
+    ["Scalability",        "Load Balancing"],
+    ["Scalability",        "Auto-scaling"],
+    ["Scalability",        "Rate Limiting"],
+    ["Data Storage",       "SQL vs NoSQL"],
+    ["Data Storage",       "Database Sharding"],
+    ["Data Storage",       "Replication (Leader–Follower, Multi-Leader)"],
+    ["Data Storage",       "CAP Theorem"],
+    ["Data Storage",       "ACID vs BASE"],
+    ["Caching",            "Caching Strategies"],
+    ["Caching",            "CDN (Content Delivery Network)"],
+    ["Caching",            "Cache Eviction Policies"],
+    ["Caching",            "Redis Architecture"],
+    ["Networking",         "DNS Resolution Flow"],
+    ["Networking",         "HTTP vs HTTPS"],
+    ["Networking",         "WebSockets vs HTTP Polling"],
+    ["Networking",         "REST vs GraphQL vs gRPC"],
+    ["Messaging & Queues", "Message Queues vs Event Streams"],
+    ["Messaging & Queues", "Pub/Sub Pattern"],
+    ["Messaging & Queues", "Kafka Architecture"],
+    ["Messaging & Queues", "Dead Letter Queues"],
+    ["Microservices",      "API Gateway Pattern"],
+    ["Microservices",      "Service Mesh"],
+    ["Microservices",      "Circuit Breaker Pattern"],
+    ["Microservices",      "Saga Pattern"],
+    ["Reliability",        "Fault Tolerance & Redundancy"],
+    ["Reliability",        "Failover Strategies"],
+    ["Reliability",        "Chaos Engineering"],
+    ["Reliability",        "SLA / SLO / SLI"],
+    ["Distributed Systems","Consistent Hashing"],
+    ["Distributed Systems","Consensus (Raft Algorithm)"],
+    ["Distributed Systems","Distributed Transactions (2PC)"],
+    ["Distributed Systems","Vector Clocks"],
+    ["Observability",      "Logging vs Metrics vs Tracing"],
+    ["Observability",      "The Three Pillars"],
+    ["Observability",      "Alerting Pipelines"],
+    ["Security",           "OAuth 2.0 / JWT Flow"],
+    ["Security",           "Rate Limiting Patterns"],
+    ["Security",           "Zero Trust Architecture"],
+  ] as [string, string][]).map(([category, title]) => ({
+    topicSlug: "system-design",
+    topicTitle: "System Design Encyclopedia",
+    topicIcon: "🏗️",
+    topicColor: "from-blue-100 to-blue-200",
+    conceptId: slug(title),
+    conceptTitle: title,
+    category,
+  })),
+
+  // ─── Design Patterns ────────────────────────────────────────────────────────
+  ...([
+    ["Creational", "Abstract Factory"],
+    ["Creational", "Builder"],
+    ["Creational", "Factory Method"],
+    ["Creational", "Prototype"],
+    ["Creational", "Singleton"],
+    ["Structural",  "Adapter"],
+    ["Structural",  "Bridge"],
+    ["Structural",  "Composite"],
+    ["Structural",  "Decorator"],
+    ["Structural",  "Facade"],
+    ["Structural",  "Flyweight"],
+    ["Structural",  "Proxy"],
+    ["Behavioral",  "Chain of Responsibility"],
+    ["Behavioral",  "Command"],
+    ["Behavioral",  "Interpreter"],
+    ["Behavioral",  "Iterator"],
+    ["Behavioral",  "Mediator"],
+    ["Behavioral",  "Memento"],
+    ["Behavioral",  "Observer"],
+    ["Behavioral",  "State"],
+    ["Behavioral",  "Strategy"],
+    ["Behavioral",  "Template Method"],
+    ["Behavioral",  "Visitor"],
+  ] as [string, string][]).map(([category, name]) => ({
+    topicSlug: "design-patterns",
+    topicTitle: "Design Patterns Encyclopedia",
+    topicIcon: "🧩",
+    topicColor: "from-purple-100 to-purple-200",
+    conceptId: slug(name),
+    conceptTitle: name,
+    category,
+  })),
+
+  // ─── PostgreSQL Internals ────────────────────────────────────────────────────
+  ...([
+    [1,  "Big Picture",             "How a Query Travels Through Postgres"],
+    [2,  "Big Picture",             "The Postgres Process Architecture"],
+    [3,  "Storage",                 "How Tables Are Stored on Disk — The Heap"],
+    [4,  "Storage",                 "B-Tree Indexes — The Data Structure"],
+    [5,  "Storage",                 "B-Tree Index Operations — Insert, Split, Scan"],
+    [6,  "Storage",                 "Other Index Types"],
+    [7,  "Transactions",            "Transactions and ACID"],
+    [8,  "Transactions",            "MVCC — Multi-Version Concurrency Control"],
+    [9,  "Transactions",            "Isolation Levels and Anomalies"],
+    [10, "Transactions",            "Locking — Row Locks, Table Locks, Deadlocks"],
+    [11, "Durability",              "WAL — The Write-Ahead Log"],
+  ] as [number, string, string][]).map(([id, category, title]) => ({
+    topicSlug: "postgres-internals",
+    topicTitle: "PostgreSQL Internals",
+    topicIcon: "🐘",
+    topicColor: "from-cyan-100 to-cyan-200",
+    conceptId: String(id),
+    conceptTitle: title,
+    category,
+  })),
+
+  // ─── Cloud Architecture Patterns ────────────────────────────────────────────
+  ...([
+    ["strangler-fig",        "p1", "Foundational",  "Strangler Fig Pattern"],
+    ["sidecar",              "p1", "Foundational",  "Sidecar Pattern"],
+    ["ambassador",           "p1", "Foundational",  "Ambassador Pattern"],
+    ["acl",                  "p1", "Foundational",  "Anti-Corruption Layer (ACL)"],
+    ["event-driven",         "p2", "Event-Driven",  "Event-Driven Architecture"],
+    ["event-sourcing",       "p2", "Event-Driven",  "Event Sourcing"],
+    ["cqrs",                 "p2", "Event-Driven",  "CQRS — Command Query Responsibility Segregation"],
+    ["saga",                 "p2", "Event-Driven",  "Saga Pattern"],
+    ["outbox",               "p2", "Event-Driven",  "Outbox Pattern"],
+    ["serverless",           "p3", "Serverless",    "Serverless Architecture"],
+    ["fan-out-in",           "p3", "Serverless",    "Fan-Out / Fan-In Pattern"],
+    ["competing-consumers",  "p3", "Serverless",    "Competing Consumers Pattern"],
+    ["durable-execution",    "p3", "Serverless",    "Durable Execution Pattern"],
+    ["circuit-breaker",      "p4", "Resilience",    "Circuit Breaker Pattern"],
+    ["bulkhead",             "p4", "Resilience",    "Bulkhead Pattern"],
+    ["retry-backoff",        "p4", "Resilience",    "Retry with Exponential Backoff & Jitter"],
+    ["throttling",           "p4", "Resilience",    "Throttling & Rate Limiting Pattern"],
+    ["db-per-service",       "p5", "Data",          "Database per Service Pattern"],
+    ["cqrs-read-replicas",   "p5", "Data",          "CQRS + Read Replicas Pattern"],
+    ["materialized-view",    "p5", "Data",          "Materialized View Pattern"],
+    ["blue-green",           "p6", "Deployment",    "Blue/Green Deployment"],
+    ["canary",               "p6", "Deployment",    "Canary Deployment"],
+    ["feature-flags",        "p6", "Deployment",    "Feature Flags Pattern"],
+    ["service-mesh",         "p6", "Deployment",    "Sidecar Service Mesh Pattern"],
+  ] as [string, string, string, string][]).map(([id, , category, title]) => ({
+    topicSlug: "cloud-architecture",
+    topicTitle: "Cloud Architecture Patterns",
+    topicIcon: "☁️",
+    topicColor: "from-sky-100 to-sky-200",
+    conceptId: id,
+    conceptTitle: title,
+    category,
+  })),
+
+  // ─── AI / LLM Encyclopedia ──────────────────────────────────────────────────
+  ...([
+    [1,  "The Basics",         "The Neuron"],
+    [2,  "The Basics",         "Layers & Deep Networks"],
+    [3,  "The Basics",         "Activation Functions"],
+    [4,  "The Basics",         "Training & Backpropagation"],
+    [5,  "The Basics",         "Overfitting & Generalization"],
+    [6,  "The Transformer",    "Tokenization"],
+    [7,  "The Transformer",    "Embeddings"],
+    [8,  "The Transformer",    "The Attention Mechanism"],
+    [9,  "The Transformer",    "Multi-Head Attention"],
+    [10, "The Transformer",    "The Transformer Block"],
+    [11, "The Transformer",    "Stacking Layers (The Full Model)"],
+    [12, "The Transformer",    "The Language Modeling Objective"],
+    [13, "Training an LLM",    "Pre-training Data"],
+    [14, "Training an LLM",    "The Pre-training Loop"],
+    [15, "Training an LLM",    "Compute & Scale"],
+    [16, "Training an LLM",    "Fine-tuning & Instruction Tuning"],
+    [17, "Training an LLM",    "RLHF — Reinforcement Learning from Human Feedback"],
+    [18, "Inference",          "The Inference Loop"],
+    [19, "Inference",          "Decoding Strategies"],
+    [20, "Inference",          "Context Window"],
+    [21, "Advanced Concepts",  "RAG — Retrieval-Augmented Generation"],
+    [22, "Advanced Concepts",  "AI Agents & Tool Use"],
+    [23, "Advanced Concepts",  "Prompt Engineering"],
+    [24, "Advanced Concepts",  "Multimodal Models"],
+    [25, "Advanced Concepts",  "What LLMs Can't Do (Yet)"],
+  ] as [number, string, string][]).map(([id, category, title]) => ({
+    topicSlug: "ai-llm",
+    topicTitle: "AI/LLM Encyclopedia",
+    topicIcon: "🤖",
+    topicColor: "from-emerald-100 to-emerald-200",
+    conceptId: String(id),
+    conceptTitle: title,
+    category,
+  })),
+
+  // ─── Production AI Agents ───────────────────────────────────────────────────
+  ...([
+    [1,  "Why Agents Are Hard",  "What Makes Agentic Systems Uniquely Hard"],
+    [2,  "Why Agents Are Hard",  "The Anatomy of an Agent Loop"],
+    [3,  "Why Agents Are Hard",  "Why Classic Software Engineering Still Wins"],
+    [4,  "The 7 Hard Problems",  "Memory Management"],
+    [5,  "The 7 Hard Problems",  "Concurrency"],
+    [6,  "The 7 Hard Problems",  "Backpressure"],
+    [7,  "The 7 Hard Problems",  "Retries"],
+    [8,  "The 7 Hard Problems",  "Timeouts"],
+    [9,  "The 7 Hard Problems",  "Failure Handling"],
+    [10, "The 7 Hard Problems",  "Observability"],
+    [11, "Putting It Together",  "The Reliable Agent Stack"],
+    [12, "Putting It Together",  "Failure Mode Catalog"],
+    [13, "Putting It Together",  "Engineering Principles That Never Go Away"],
+  ] as [number, string, string][]).map(([id, category, title]) => ({
+    topicSlug: "production-ai-agents",
+    topicTitle: "Production AI Agents Encyclopedia",
+    topicIcon: "⚙️",
+    topicColor: "from-orange-100 to-orange-200",
+    conceptId: String(id),
+    conceptTitle: title,
+    category,
+  })),
+];
