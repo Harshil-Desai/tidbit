@@ -346,16 +346,46 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "system-design:SQL vs NoSQL": {
     oneLine: "SQL gives you rigid structure and ACID guarantees; NoSQL trades some of that for flexible schemas and horizontal scalability.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="SQL: fixed schema, joins, ACID. NoSQL: flexible, horizontal, eventual.">
-        <DiagBox x={10} y={20} w={200} h={160} label="SQL" sub="relational" fill={h.soft} stroke={h.base} text={h.ink} />
-        <text x={110} y={80} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Fixed schema</text>
-        <text x={110} y={100} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Joins &amp; transactions</text>
-        <text x={110} y={120} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Scales vertically</text>
-        <DiagBox x={250} y={20} w={200} h={160} label="NoSQL" sub="document / KV / graph" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <text x={350} y={80} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Flexible schema</text>
-        <text x={350} y={100} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Eventual consistency</text>
-        <text x={350} y={120} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Scales horizontally</text>
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
+      <DiagFrame vb="0 0 460 210" caption="SQL normalises into rows and joins them. NoSQL nests data inside a document — fewer joins, more redundancy.">
+        {/* SQL side */}
+        <text x={108} y={18} textAnchor="middle" fontSize="12" fontWeight="700" fill={h.ink} fontFamily={f}>SQL</text>
+        {/* Users table */}
+        <rect x={12} y={24} width={192} height={22} rx={4} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
+        <text x={108} y={38} textAnchor="middle" fontSize="10" fontWeight="700" fill={h.ink} fontFamily={f}>users (id, name, email)</text>
+        {[["1","Alice","a@co"],["2","Bob","b@co"]].map(([id,name,email],i)=>(
+          <g key={i}>
+            <rect x={12} y={46+i*18} width={192} height={18} rx={0} fill="var(--card)" stroke={s} strokeWidth="0.5"/>
+            <text x={28} y={58+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{id}</text>
+            <text x={60} y={58+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{name}</text>
+            <text x={115} y={58+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{email}</text>
+          </g>
+        ))}
+        {/* Orders table */}
+        <rect x={12} y={96} width={192} height={22} rx={4} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
+        <text x={108} y={110} textAnchor="middle" fontSize="10" fontWeight="700" fill={h.ink} fontFamily={f}>orders (id, user_id, total)</text>
+        {[["101","1","$20"],["102","1","$45"]].map(([id,uid,total],i)=>(
+          <g key={i}>
+            <rect x={12} y={118+i*18} width={192} height={18} rx={0} fill="var(--card)" stroke={s} strokeWidth="0.5"/>
+            <text x={28} y={130+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{id}</text>
+            <text x={70} y={130+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{uid}</text>
+            <text x={130} y={130+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{total}</text>
+          </g>
+        ))}
+        <text x={108} y={172} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>JOIN orders ON user_id = id</text>
+        {/* divider */}
+        <line x1={230} y1={10} x2={230} y2={180} stroke={s} strokeWidth="1" strokeDasharray="5 3"/>
+        {/* NoSQL side */}
+        <text x={345} y={18} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--ink)" fontFamily={f}>NoSQL</text>
+        <rect x={242} y={24} width={208} height={130} rx={6} fill="var(--card)" stroke={s} strokeWidth="1.5"/>
+        <text x={254} y={40} fontSize="9.5" fontWeight="700" fill="var(--ink)" fontFamily={f}>{"{ id: 1, name: \"Alice\","}</text>
+        <text x={254} y={55} fontSize="9.5" fill={h.ink} fontFamily={f}>{"  email: \"a@co\","}</text>
+        <text x={254} y={70} fontSize="9.5" fontWeight="700" fill={h.ink} fontFamily={f}>{"  orders: ["}</text>
+        <text x={262} y={85} fontSize="9.5" fill="var(--ink-2)" fontFamily={f}>{"  { id:101, total:\"$20\" },"}</text>
+        <text x={262} y={100} fontSize="9.5" fill="var(--ink-2)" fontFamily={f}>{"  { id:102, total:\"$45\" }"}</text>
+        <text x={254} y={115} fontSize="9.5" fontWeight="700" fill={h.ink} fontFamily={f}>{"  ]"}</text>
+        <text x={254} y={130} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{"}"}</text>
+        <text x={346} y={172} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>no join needed — data co-located</text>
       </DiagFrame>
     ); },
     analogy: { title: "Spreadsheet vs. filing cabinet", text: "SQL is a tidy spreadsheet where every row has the same columns. NoSQL is a filing cabinet where each folder can hold whatever papers you stuff in it." },
@@ -417,15 +447,54 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "system-design:ACID vs BASE": {
     oneLine: "ACID gives you strong transactional guarantees; BASE trades them for availability and eventual consistency — the right choice depends on your tolerance for stale data.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="ACID: strong guarantees. BASE: eventual consistency for availability.">
-        <DiagBox x={10} y={20} w={200} h={150} label="ACID" fill={h.soft} stroke={h.base} text={h.ink} />
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
+      <DiagFrame vb="0 0 460 210" caption="ACID: a transaction either fully commits or fully rolls back — no partial state. BASE: replicas may diverge but eventually converge to the same value.">
+        {/* ACID side */}
+        <text x={108} y={16} textAnchor="middle" fontSize="12" fontWeight="700" fill={h.ink} fontFamily={f}>ACID</text>
+        {/* Transaction timeline */}
+        <line x1={16} y1={40} x2={200} y2={40} stroke={s} strokeWidth="1"/>
+        <text x={16} y={36} fontSize="8" fill={s} fontFamily={f}>time →</text>
+        {/* BEGIN block */}
+        <rect x={16} y={45} width={40} height={28} rx={4} fill="var(--card)" stroke={s} strokeWidth="1"/>
+        <text x={36} y={62} textAnchor="middle" fontSize="8" fill="var(--ink)" fontFamily={f}>BEGIN</text>
+        {/* Work block */}
+        <rect x={64} y={45} width={60} height={28} rx={4} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
+        <text x={94} y={59} textAnchor="middle" fontSize="8" fontWeight="700" fill={h.ink} fontFamily={f}>work</text>
+        <text x={94} y={69} textAnchor="middle" fontSize="7.5" fill={h.ink} fontFamily={f}>(all or nothing)</text>
+        {/* COMMIT */}
+        <rect x={132} y={45} width={48} height={28} rx={4} fill="#e2f4e9" stroke="#2ba15a" strokeWidth="1.5"/>
+        <text x={156} y={62} textAnchor="middle" fontSize="8" fontWeight="700" fill="#1c8147" fontFamily={f}>COMMIT</text>
+        {/* Rollback path */}
+        <rect x={132} y={88} width={48} height={26} rx={4} fill="#fde7ea" stroke="#e8497b" strokeWidth="1.5"/>
+        <text x={156} y={104} textAnchor="middle" fontSize="8" fontWeight="700" fill="#c72f60" fontFamily={f}>ROLLBACK</text>
+        <line x1={94} y1={73} x2={94} y2={90} stroke={s} strokeWidth="1" strokeDasharray="3 2"/>
+        <line x1={94} y1={90} x2={130} y2={101} stroke={s} strokeWidth="1" strokeDasharray="3 2"/>
+        <text x={100} y={86} fontSize="7.5" fill={s} fontFamily={f}>on error →</text>
+        {/* ACID labels */}
         {["Atomic","Consistent","Isolated","Durable"].map((t,i)=>(
-          <text key={i} x={110} y={70+i*22} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">{t}</text>
+          <text key={i} x={16} y={138+i*14} fontSize="9" fill="var(--ink)" fontFamily={f}>✓ {t}</text>
         ))}
-        <DiagBox x={250} y={20} w={200} h={150} label="BASE" fill="var(--card)" stroke={s} text="var(--ink)" />
+        {/* divider */}
+        <line x1={226} y1={8} x2={226} y2={200} stroke={s} strokeWidth="1" strokeDasharray="5 3"/>
+        {/* BASE side */}
+        <text x={345} y={16} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--ink)" fontFamily={f}>BASE</text>
+        {/* Two nodes showing divergence then convergence */}
+        <text x={236} y={36} fontSize="8" fill={s} fontFamily={f}>time →</text>
+        <line x1={236} y1={40} x2={450} y2={40} stroke={s} strokeWidth="1"/>
+        {/* Node A */}
+        <text x={240} y={58} fontSize="8" fontWeight="700" fill="var(--ink)" fontFamily={f}>Node A</text>
+        <polyline points="240,65 280,65 300,55 340,55 380,60 420,60" fill="none" stroke={h.base} strokeWidth="2"/>
+        {/* Node B */}
+        <text x={240} y={90} fontSize="8" fontWeight="700" fill="var(--ink)" fontFamily={f}>Node B</text>
+        <polyline points="240,98 280,108 300,110 340,95 380,65 420,60" fill="none" stroke={s} strokeWidth="2" strokeDasharray="5 3"/>
+        {/* Convergence marker */}
+        <line x1={380} y1={42} x2={380} y2={120} stroke="#2ba15a" strokeWidth="1.5" strokeDasharray="4 2"/>
+        <text x={382} y={130} fontSize="7.5" fill="#2ba15a" fontFamily={f}>converge</text>
+        {/* Diverge label */}
+        <text x={300} y={120} textAnchor="middle" fontSize="8" fill={s} fontFamily={f}>nodes diverge briefly</text>
+        {/* BASE labels */}
         {["Basically Available","Soft state","Eventually consistent"].map((t,i)=>(
-          <text key={i} x={350} y={75+i*25} textAnchor="middle" fontSize="11" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">{t}</text>
+          <text key={i} x={236} y={152+i*14} fontSize="9" fill="var(--ink)" fontFamily={f}>✓ {t}</text>
         ))}
       </DiagFrame>
     ); },
@@ -1496,14 +1565,31 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "postgres-internals:Other Index Types": {
     oneLine: "Postgres offers Hash, GIN, GiST, and BRIN indexes — each trades B-tree's generality for better performance on a specific data access pattern.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Choose by access pattern: Hash for equality, GIN for contains, GiST for ranges/geometry, BRIN for time-series.">
-        {[["Hash","equality only"],["GIN","array / full-text"],["GiST","geo / ranges"],["BRIN","ordered large tables"]].map(([name,use],i)=>(
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; const indexes = [
+        { name:"Hash", use:"equality only", icon:"=", detail:"O(1) lookup\nno range support", hi:false },
+        { name:"GIN", use:"jsonb / arrays / FTS", icon:"∈", detail:"posting list\nper element", hi:true },
+        { name:"GiST", use:"geo / ranges / NN", icon:"⊂", detail:"nearest-neighbour\n& range overlap", hi:false },
+        { name:"BRIN", use:"huge ordered tables", icon:"↕", detail:"min/max per\nblock range", hi:false },
+      ]; return (
+      <DiagFrame vb="0 0 460 210" caption="Each index trades B-tree generality for faster performance on a specific access pattern. GIN is the go-to for jsonb and full-text search.">
+        {indexes.map(({name,use,icon,detail,hi},i)=>(
           <g key={i}>
-            <DiagBox x={10+i*112} y={60} w={100} h={70} label={name as string} sub={use as string} fill={i===1?h.soft:"var(--card)"} stroke={i===1?h.base:s} text={i===1?h.ink:"var(--ink)"} />
+            <rect x={10+i*112} y={20} width={100} height={120} rx={10} fill={hi?h.soft:"var(--card)"} stroke={hi?h.base:s} strokeWidth="1.5"/>
+            {/* Big icon */}
+            <text x={60+i*112} y={55} textAnchor="middle" fontSize="28" fill={hi?h.ink:s} fontFamily={f}>{icon}</text>
+            {/* Name */}
+            <text x={60+i*112} y={74} textAnchor="middle" fontSize="11" fontWeight="700" fill={hi?"var(--ink)":"var(--ink)"} fontFamily={f}>{name}</text>
+            {/* Use */}
+            <text x={60+i*112} y={87} textAnchor="middle" fontSize="8.5" fill={hi?h.ink:s} fontFamily={f}>{use}</text>
+            {/* Detail lines */}
+            {detail.split("\n").map((line,j)=>(
+              <text key={j} x={60+i*112} y={104+j*13} textAnchor="middle" fontSize="8" fill={hi?h.ink:s} fontFamily={f} opacity="0.85">{line}</text>
+            ))}
           </g>
         ))}
-        <text x={230} y={165} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">all integrate with the query planner automatically</text>
+        {/* Query type row */}
+        <text x={230} y={163} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>WHERE x = ?  ·  WHERE x @&gt; ?  ·  WHERE x &amp;&amp; range  ·  WHERE ts &gt; ?</text>
+        <text x={230} y={180} textAnchor="middle" fontSize="9.5" fill={s} fontFamily={f}>all integrate with the query planner — no hint needed</text>
       </DiagFrame>
     ); },
     analogy: { title: "Like choosing the right tool in a toolbox", text: "A B-tree is a swiss army knife. Hash is a faster, narrower knife for equality only. GIN is a staple gun for composite values. BRIN is a filing system for huge ordered archives." },
@@ -1531,15 +1617,35 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "postgres-internals:Isolation Levels and Anomalies": {
     oneLine: "Postgres's four isolation levels control how much concurrent transactions can interfere — higher isolation prevents more anomalies but increases contention.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Stronger isolation → fewer anomalies → more blocking.">
-        {[["Read\nCommitted","dirty read\nprevented"],["Repeatable\nRead","non-repeatable\nprevented"],["Serializable","phantom\nprevented"]].map(([lbl,sub],i)=>(
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; const levels = [
+        { name:"Read Committed", anomaly:"non-repeatable read", color:"var(--card)", stroke:s, text:"var(--ink)" },
+        { name:"Repeatable Read", anomaly:"phantom read", color:"var(--card)", stroke:s, text:"var(--ink)" },
+        { name:"Serializable (SSI)", anomaly:"write skew", color:h.soft, stroke:h.base, text:h.ink },
+      ]; return (
+      <DiagFrame vb="0 0 460 210" caption="Each level eliminates one more anomaly. Higher isolation costs more contention. Postgres default is Read Committed.">
+        {/* Staircase bars — wider = stronger */}
+        {levels.map(({name,anomaly,color,stroke,text},i)=>{
+          const w = 200+i*70; const x = (460-w)/2; const y = 20+i*52;
+          return (
+            <g key={i}>
+              <rect x={x} y={y} width={w} height={38} rx={8} fill={color} stroke={stroke} strokeWidth="1.5"/>
+              <text x={x+w/2} y={y+14} textAnchor="middle" fontSize="10.5" fontWeight="700" fill={text} fontFamily={f}>{name}</text>
+              <text x={x+w/2} y={y+28} textAnchor="middle" fontSize="9" fill={text} fontFamily={f} opacity="0.85">prevents: dirty read{i>0?" + non-repeatable":""}{i>1?" + phantom + write-skew":""}</text>
+            </g>
+          );
+        })}
+        {/* Arrows between levels */}
+        {[0,1].map(i=>(
           <g key={i}>
-            <DiagBox x={10+i*148} y={60} w={136} h={70} label={(lbl as string).replace("\n"," ")} sub={(sub as string).replace("\n"," ")} fill={i===2?h.soft:"var(--card)"} stroke={i===2?h.base:s} text={i===2?h.ink:"var(--ink)"} />
+            <line x1={230} y1={58+i*52} x2={230} y2={64+i*52} stroke={s} strokeWidth="1.5" markerEnd="url(#arrowhead)"/>
+            <text x={245} y={62+i*52} fontSize="9" fill={s} fontFamily={f}>+ more safety</text>
           </g>
         ))}
-        <text x={230} y={158} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">Postgres default: Read Committed</text>
-        <text x={230} y={175} textAnchor="middle" fontSize="10" fill={h.ink} fontFamily="var(--font-body,system-ui)">Serializable uses SSI — no explicit locks needed</text>
+        {/* Side labels */}
+        <text x={14} y={39} fontSize="9" fill={s} fontFamily={f}>weak</text>
+        <text x={14} y={143} fontSize="9" fill={h.ink} fontFamily={f}>strong</text>
+        <line x1={20} y1={44} x2={20} y2={148} stroke={s} strokeWidth="1" strokeDasharray="3 2"/>
+        <text x={230} y={192} textAnchor="middle" fontSize="9.5" fill={s} fontFamily={f}>Postgres default: Read Committed · Serializable uses SSI (no locks)</text>
       </DiagFrame>
     ); },
     analogy: { title: "Like proof-reading drafts", text: "Read Committed: you see every published revision as you read. Repeatable Read: you only see the version that existed when you started. Serializable: it's as if no one else is editing at all." },
@@ -2059,15 +2165,36 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "ai-llm:Activation Functions": {
     oneLine: "Activation functions introduce non-linearity into neural networks — without them, a million-layer network collapses to a single matrix multiplication and learns nothing complex.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="ReLU clips negatives to zero; Sigmoid squashes to (0,1); GELU is a smooth version of ReLU used in transformers.">
-        {[["ReLU","max(0,x)"],["Sigmoid","1/(1+e⁻ˣ)"],["GELU","smooth ReLU"]].map(([name,formula],i)=>(
-          <g key={i}>
-            <DiagBox x={10+i*148} y={40} w={136} h={100} label={name as string} sub={formula as string} fill={i===2?h.soft:"var(--card)"} stroke={i===2?h.base:s} text={i===2?h.ink:"var(--ink)"} />
-            <text x={78+i*148} y={120} textAnchor="middle" fontSize="9" fill={i===2?h.ink:"var(--ink-2)"} fontFamily="var(--font-body,system-ui)">{["kills negatives","S-curve 0→1","smooth, fast"][i]}</text>
-          </g>
-        ))}
-        <text x={230} y={175} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">transformers use GELU; older nets use ReLU; outputs use Sigmoid/Softmax</text>
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
+      <DiagFrame vb="0 0 460 205" caption="Each function shapes how neurons fire: ReLU is a one-way gate, Sigmoid squashes to a probability, GELU is a smooth probabilistic gate.">
+        {/* — ReLU graph — */}
+        <text x={75} y={22} textAnchor="middle" fontSize="11" fontWeight="700" fill={h.ink} fontFamily={f}>ReLU</text>
+        <text x={75} y={34} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>max(0, x)</text>
+        <line x1={10} y1={110} x2={142} y2={110} stroke={s} strokeWidth="1"/>
+        <line x1={75} y1={42} x2={75} y2={112} stroke={s} strokeWidth="1"/>
+        <polyline points="10,110 75,110 141,44" fill="none" stroke={h.base} strokeWidth="2.5" strokeLinejoin="round"/>
+        <text x={10} y={109} fontSize="8" fill={s} fontFamily={f}>−</text>
+        <text x={136} y={109} fontSize="8" fill={s} fontFamily={f}>+</text>
+        {/* — Sigmoid graph — */}
+        <text x={228} y={22} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--ink)" fontFamily={f}>Sigmoid</text>
+        <text x={228} y={34} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>1 /(1 + e⁻ˣ)</text>
+        <line x1={163} y1={110} x2={295} y2={110} stroke={s} strokeWidth="1"/>
+        <line x1={228} y1={42} x2={228} y2={115} stroke={s} strokeWidth="1"/>
+        <polyline points="163,107 185,102 207,91 228,75 250,59 272,48 294,43" fill="none" stroke={s} strokeWidth="2" strokeLinejoin="round"/>
+        <text x={300} y={46} fontSize="8" fill={s} fontFamily={f}>1</text>
+        <text x={300} y={113} fontSize="8" fill={s} fontFamily={f}>0</text>
+        {/* — GELU graph — */}
+        <text x={381} y={22} textAnchor="middle" fontSize="11" fontWeight="700" fill={h.ink} fontFamily={f}>GELU</text>
+        <text x={381} y={34} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>smooth ReLU</text>
+        <line x1={316} y1={110} x2={448} y2={110} stroke={s} strokeWidth="1"/>
+        <line x1={381} y1={42} x2={381} y2={112} stroke={s} strokeWidth="1"/>
+        <polyline points="316,110 337,111 359,114 370,113 381,110 403,92 425,67 447,44" fill="none" stroke={h.base} strokeWidth="2.5" strokeLinejoin="round"/>
+        <text x={316} y={109} fontSize="8" fill={s} fontFamily={f}>−</text>
+        <text x={442} y={109} fontSize="8" fill={s} fontFamily={f}>+</text>
+        {/* — Dividers — */}
+        <line x1={153} y1={18} x2={153} y2={128} stroke={s} strokeWidth="0.5" strokeDasharray="4 3"/>
+        <line x1={308} y1={18} x2={308} y2={128} stroke={s} strokeWidth="0.5" strokeDasharray="4 3"/>
+        <text x={230} y={148} textAnchor="middle" fontSize="9.5" fill={s} fontFamily={f}>transformers use GELU; binary classifiers use Sigmoid; multi-class output uses Softmax</text>
       </DiagFrame>
     ); },
     analogy: { title: "Like a dimmer vs. an on/off switch vs. a smooth fade", text: "Sigmoid is an on/off switch that transitions smoothly. ReLU is a one-way valve — anything negative gets cut to zero. GELU is a soft version that eases the cutoff." },
@@ -2182,15 +2309,40 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "ai-llm:The Transformer Block": {
     oneLine: "A transformer block is the repeating unit of every modern LLM: multi-head attention followed by a feed-forward network, with residual connections and layer norm keeping training stable.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Input → LayerNorm → MHA → residual add → LayerNorm → FFN → residual add → Output.">
-        {[["LayerNorm",30],["Multi-Head\nAttention",80],["Add & Norm",140],["Feed-Forward",190],["Add & Norm",240]].map(([lbl,y],i)=>(
-          <g key={i}>
-            <DiagBox x={150} y={y as number} w={160} h={36} label={(lbl as string).replace("\n"," ")} fill={i===1||i===3?h.soft:"var(--card)"} stroke={i===1||i===3?h.base:s} text={i===1||i===3?h.ink:"var(--ink)"} />
-            {i<4&&<DiagArrow x1={230} y1={(y as number)+36} x2={230} y2={(y as number)+44} color={h.base} />}
-          </g>
-        ))}
-        <text x={230} y={295} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">residual skip connections bypass each sub-layer</text>
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
+      <DiagFrame vb="0 0 430 278" caption="Each sub-layer is wrapped in a residual: output = x + sublayer(LayerNorm(x)). Skip paths allow gradients to flow through hundreds of layers.">
+        {/* Input */}
+        <text x={220} y={16} textAnchor="middle" fontSize="11" fontWeight="700" fill={h.ink} fontFamily={f}>x (input)</text>
+        <line x1={220} y1={19} x2={220} y2={28} stroke={h.base} strokeWidth="2"/>
+        {/* LayerNorm 1 */}
+        <DiagBox x={120} y={28} w={200} h={34} label="Layer Norm" fill="var(--card)" stroke={s} text="var(--ink)" />
+        <line x1={220} y1={62} x2={220} y2={70} stroke={h.base} strokeWidth="2"/>
+        {/* MHA */}
+        <DiagBox x={120} y={70} w={200} h={34} label="Multi-Head Attention" fill={h.soft} stroke={h.base} text={h.ink} />
+        <line x1={220} y1={104} x2={220} y2={118} stroke={h.base} strokeWidth="2"/>
+        {/* Add node 1 */}
+        <circle cx={220} cy={126} r={11} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
+        <text x={220} y={130} textAnchor="middle" fontSize="13" fontWeight="700" fill={h.ink} fontFamily={f}>+</text>
+        {/* Skip path 1: from before LayerNorm1 to Add1 */}
+        <path d="M 120 45 L 58 45 L 58 126 L 209 126" fill="none" stroke={s} strokeWidth="1.5" strokeDasharray="5 3"/>
+        <text x={42} y={88} textAnchor="middle" fontSize="9" fill={s} fontFamily={f} transform="rotate(-90 42 88)">skip</text>
+        {/* Arrow from Add1 down */}
+        <line x1={220} y1={137} x2={220} y2={148} stroke={h.base} strokeWidth="2"/>
+        {/* LayerNorm 2 */}
+        <DiagBox x={120} y={148} w={200} h={34} label="Layer Norm" fill="var(--card)" stroke={s} text="var(--ink)" />
+        <line x1={220} y1={182} x2={220} y2={190} stroke={h.base} strokeWidth="2"/>
+        {/* FFN */}
+        <DiagBox x={120} y={190} w={200} h={34} label="Feed-Forward Network" fill={h.soft} stroke={h.base} text={h.ink} />
+        <line x1={220} y1={224} x2={220} y2={238} stroke={h.base} strokeWidth="2"/>
+        {/* Add node 2 */}
+        <circle cx={220} cy={246} r={11} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
+        <text x={220} y={250} textAnchor="middle" fontSize="13" fontWeight="700" fill={h.ink} fontFamily={f}>+</text>
+        {/* Skip path 2: from after Add1 to Add2 */}
+        <path d="M 120 165 L 58 165 L 58 246 L 209 246" fill="none" stroke={s} strokeWidth="1.5" strokeDasharray="5 3"/>
+        <text x={42} y={208} textAnchor="middle" fontSize="9" fill={s} fontFamily={f} transform="rotate(-90 42 208)">skip</text>
+        {/* Output */}
+        <line x1={220} y1={257} x2={220} y2={266} stroke={h.base} strokeWidth="2"/>
+        <text x={220} y={275} textAnchor="middle" fontSize="11" fontWeight="700" fill={h.ink} fontFamily={f}>x′ (output)</text>
       </DiagFrame>
     ); },
     analogy: { title: "Like a revision loop for an essay", text: "First you check which parts reference each other (attention). Then you refine the phrasing independently (FFN). After each step you compare to the original draft (residual) to make sure you haven't drifted." },
@@ -2199,15 +2351,29 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "ai-llm:Stacking Layers (The Full Model)": {
     oneLine: "A full LLM is dozens of identical transformer blocks stacked in sequence — the same block architecture repeated N times with independent weights.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Token embedding → positional encoding → N transformer blocks → output projection → logits.">
-        {[["Embed +\nPos Enc",20],["Block 1",85],["Block 2",130],["… Block N",175],["Output\nProjection",220]].map(([lbl,y],i)=>(
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
+      <DiagFrame vb="0 0 460 240" caption="Each block refines the representations passed from below. Early blocks learn syntax; late blocks learn task reasoning.">
+        {/* Token input */}
+        <text x={230} y={15} textAnchor="middle" fontSize="10" fill={s} fontFamily={f}>Tokens: "The cat sat…"</text>
+        <DiagBox x={100} y={20} w={260} h={34} label="Embed + Positional Encoding" fill="var(--card)" stroke={s} text="var(--ink)" />
+        <DiagArrow x1={230} y1={54} x2={230} y2={64} color={h.base} />
+        {/* Block stack */}
+        {[
+          {lbl:"Block 1",sub:"syntax, local patterns", y:64},
+          {lbl:"Block 2",sub:"word relationships", y:108},
+          {lbl:"  ·  ·  ·",sub:"", y:152},
+          {lbl:"Block N",sub:"reasoning, task logic", y:182},
+        ].map(({lbl,sub,y},i)=>(
           <g key={i}>
-            <DiagBox x={130} y={y as number} w={200} h={36} label={(lbl as string).replace("\n"," ")} fill={i===1||i===2||i===3?h.soft:"var(--card)"} stroke={i===1||i===2||i===3?h.base:s} text={i===1||i===2||i===3?h.ink:"var(--ink)"} />
-            {i<4&&<DiagArrow x1={230} y1={(y as number)+36} x2={230} y2={(y as number)+44} color={h.base} />}
+            <rect x={80} y={y} width={300} height={34} rx={10} fill={i===0||i===3?h.soft:"var(--card)"} stroke={i===0||i===3?h.base:s} strokeWidth={i===0||i===3?2:1}/>
+            <text x={230} y={y+14} textAnchor="middle" fontSize="11" fontWeight="700" fill={i===0||i===3?h.ink:"var(--ink)"} fontFamily={f}>{lbl}</text>
+            {sub&&<text x={230} y={y+26} textAnchor="middle" fontSize="8.5" fill={i===0||i===3?h.ink:s} fontFamily={f}>{sub}</text>}
+            {i<3&&<DiagArrow x1={230} y1={y+34} x2={230} y2={y+42} color={i===2?s:h.base} dashed={i===2} />}
           </g>
         ))}
-        <text x={230} y={285} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">GPT-3: 96 blocks × 96 heads × 12,288 dims = 175 B params</text>
+        <DiagArrow x1={230} y1={216} x2={230} y2={224} color={h.base} />
+        <DiagBox x={100} y={224} w={260} h={10} label="Output Projection → logits over vocabulary" fill="var(--card)" stroke={s} text="var(--ink)" rx={6} />
+        <text x={230} y={246} textAnchor="middle" fontSize="9.5" fill={s} fontFamily={f}>GPT-3: 96 blocks × 96 heads × 12,288 dims = 175 B params</text>
       </DiagFrame>
     ); },
     analogy: { title: "Like reading a book chapter by chapter", text: "Each chapter (block) builds on what you learned in the previous one. By the final chapter your understanding is deep and layered — the early chapters laid foundations the later ones refine." },
@@ -2502,12 +2668,33 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "production-ai-agents:Memory Management": {
     oneLine: "Agents need multiple memory types — in-context (short), external (long), episodic (past interactions), and semantic (facts) — because the context window is finite and expensive.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Four memory tiers: in-context scratch, vector store, key-value store, structured DB.">
-        {[["In-context","current window"],["Vector store","semantic search"],["KV store","fast key lookup"],["SQL / DB","structured facts"]].map(([name,sub],i)=>(
-          <DiagBox key={i} x={10+i*112} y={55} w={100} h={90} label={name as string} sub={sub as string} fill={i===0?h.soft:"var(--card)"} stroke={i===0?h.base:s} text={i===0?h.ink:"var(--ink)"} />
-        ))}
-        <text x={230} y={170} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">in-context is fastest; external stores are persistent across sessions</text>
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; const tiers = [
+        { label:"In-context", sub:"current window", w:120, fill:h.soft, stroke:h.base, text:h.ink },
+        { label:"Vector store", sub:"semantic search", w:200, fill:"var(--card)", stroke:s, text:"var(--ink)" },
+        { label:"KV store", sub:"fast key lookup", w:300, fill:"var(--card)", stroke:s, text:"var(--ink)" },
+        { label:"SQL / DB", sub:"structured facts", w:400, fill:"var(--card)", stroke:s, text:"var(--ink)" },
+      ]; return (
+      <DiagFrame vb="0 0 460 230" caption="Higher tier = faster access but limited size. Lower tier = vast capacity but slower retrieval. Good agents manage all four.">
+        {/* Speed label left */}
+        <text x={16} y={30} fontSize="9" fill={s} fontFamily={f}>⚡ fast</text>
+        <text x={16} y={180} fontSize="9" fill={s} fontFamily={f}>🐢 slow</text>
+        <line x1={24} y1={32} x2={24} y2={178} stroke={s} strokeWidth="1" strokeDasharray="3 2"/>
+        {/* Capacity label right */}
+        <text x={430} y={30} textAnchor="end" fontSize="9" fill={s} fontFamily={f}>small</text>
+        <text x={430} y={180} textAnchor="end" fontSize="9" fill={s} fontFamily={f}>huge</text>
+        <line x1={436} y1={32} x2={436} y2={178} stroke={s} strokeWidth="1" strokeDasharray="3 2"/>
+        {/* Pyramid tiers */}
+        {tiers.map(({label,sub,w,fill,stroke,text},i)=>{
+          const x = (460-w)/2; const y = 18+i*42;
+          return (
+            <g key={i}>
+              <rect x={x} y={y} width={w} height={36} rx={8} fill={fill} stroke={stroke} strokeWidth="1.5"/>
+              <text x={x+w/2} y={y+14} textAnchor="middle" fontSize="10.5" fontWeight="700" fill={text} fontFamily={f}>{label}</text>
+              <text x={x+w/2} y={y+26} textAnchor="middle" fontSize="9" fill={text} fontFamily={f} opacity="0.8">{sub}</text>
+            </g>
+          );
+        })}
+        <text x={230} y={207} textAnchor="middle" fontSize="9.5" fill={s} fontFamily={f}>pin goals in-context; recall past runs from vector store; exact state from KV</text>
       </DiagFrame>
     ); },
     analogy: { title: "Like a doctor's working memory, notepad, and patient file", text: "The doctor remembers the current conversation (in-context), jots notes on a pad (KV store), searches past visit records (vector store), and reads structured test results (SQL). Each layer has different speed and capacity." },
@@ -2609,12 +2796,30 @@ const FEATURED: Record<string, FeaturedEntry> = {
   },
   "production-ai-agents:Observability": {
     oneLine: "Observability means you can answer 'what is my agent doing and why did it fail' without SSH-ing into a server — structured logs, traces, and metrics are the three pillars.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Logs record events, traces link them into a request chain, metrics aggregate them for dashboards.">
-        {[["Logs","structured JSON events"],["Traces","distributed spans"],["Metrics","latency / error rate"]].map(([name,sub],i)=>(
-          <DiagBox key={i} x={10+i*148} y={50} w={136} h={90} label={name as string} sub={sub as string} fill={i===1?h.soft:"var(--card)"} stroke={i===1?h.base:s} text={i===1?h.ink:"var(--ink)"} />
+    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
+      <DiagFrame vb="0 0 460 210" caption="Every LLM call emits an event that fans out to logs (what happened), a trace span (where in the request), and a metrics counter (how often/fast).">
+        {/* Agent source */}
+        <DiagBox x={160} y={10} w={140} h={40} label="Agent call" sub="LLM / tool" fill={h.soft} stroke={h.base} text={h.ink} />
+        {/* Fan-out lines */}
+        <line x1={230} y1={50} x2={230} y2={62} stroke={h.base} strokeWidth="1.5"/>
+        <line x1={68} y1={62} x2={392} y2={62} stroke={h.base} strokeWidth="1.5"/>
+        {[68,230,392].map(x=>(
+          <line key={x} x1={x} y1={62} x2={x} y2={75} stroke={h.base} strokeWidth="1.5"/>
         ))}
-        <text x={230} y={162} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">trace every LLM call with input, output, latency, and cost</text>
+        {/* Three pillars */}
+        {([
+          ["Logs", "structured events", "timestamp, model,\nprompt tokens, cost", 14],
+          ["Traces", "distributed spans", "trace ID links every\nLLM + tool call", 158],
+          ["Metrics", "aggregated signals", "latency p99,\nerror rate, token/run", 302],
+        ] as [string,string,string,number][]).map(([name,sub,detail,x],i)=>(
+          <g key={i}>
+            <DiagBox x={x} y={75} w={144} h={44} label={name} sub={sub} fill={i===1?h.soft:"var(--card)"} stroke={i===1?h.base:s} text={i===1?h.ink:"var(--ink)"} />
+            {detail.split("\n").map((line,j)=>(
+              <text key={j} x={x+72} y={137+j*14} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>{line}</text>
+            ))}
+          </g>
+        ))}
+        <text x={230} y={185} textAnchor="middle" fontSize="9.5" fill={s} fontFamily={f}>trace ID threads all spans together — one click to the root cause</text>
       </DiagFrame>
     ); },
     analogy: { title: "Like a flight data recorder for your agent", text: "You can't reproduce the crash, but the black box tells you everything: altitude, speed, control inputs, timestamps. Structured logs and traces are your black box." },
