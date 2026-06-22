@@ -68,11 +68,21 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           WebkitBackdropFilter: "blur(14px)",
           borderBottom: "1px solid var(--line)",
         }}>
-          <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px", height: 68, display: "flex", alignItems: "center", gap: 26 }}>
+          <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 clamp(16px, 5vw, 28px)", height: "clamp(56px, 12vw, 68px)", display: "flex", alignItems: "center", gap: "clamp(12px, 3vw, 26px)" }}>
             {/* Wordmark */}
-            <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-              <TidbitLogo size={30} />
-              <span className="font-display" style={{ fontSize: "1.5rem", color: "var(--ink)", lineHeight: 1 }}>
+            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)", textDecoration: "none" }}>
+              <svg width={24} height={24} viewBox="0 0 32 32" aria-hidden="true" style={{ flexShrink: 0, minWidth: 24, minHeight: 24 }}>
+                <defs>
+                  <mask id="bite-24">
+                    <rect x="0" y="0" width="32" height="32" rx="9" fill="#fff" />
+                    <circle cx="30" cy="4" r="7.5" fill="#000" />
+                  </mask>
+                </defs>
+                <rect x="0" y="0" width="32" height="32" rx="9" fill="var(--brand)" mask="url(#bite-24)" />
+                <circle cx="11.5" cy="19" r="2.1" fill="#fff" />
+                <circle cx="20.5" cy="19" r="2.1" fill="#fff" />
+              </svg>
+              <span className="font-display" style={{ fontSize: "clamp(1.2rem, 4vw, 1.5rem)", color: "var(--ink)", lineHeight: 1 }}>
                 Tidbit
               </span>
             </Link>
@@ -97,10 +107,20 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </main>
 
         <footer style={{ borderTop: "1px solid var(--line)", marginTop: 20 }}>
-          <div style={{ maxWidth: 1120, margin: "0 auto", padding: "28px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
-            <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-              <TidbitLogo size={24} />
-              <span className="font-display" style={{ fontSize: "1.1rem", color: "var(--ink)", lineHeight: 1 }}>Tidbit</span>
+          <div style={{ maxWidth: 1120, margin: "0 auto", padding: "clamp(16px, 5vw, 28px)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "clamp(8px, 2vw, 14px)" }}>
+            <Link href="/" style={{ display: "flex", alignItems: "center", gap: "clamp(6px, 1.5vw, 10px)", textDecoration: "none" }}>
+              <svg width={20} height={20} viewBox="0 0 32 32" aria-hidden="true" style={{ flexShrink: 0, minWidth: 20, minHeight: 20 }}>
+                <defs>
+                  <mask id="bite-20">
+                    <rect x="0" y="0" width="32" height="32" rx="9" fill="#fff" />
+                    <circle cx="30" cy="4" r="7.5" fill="#000" />
+                  </mask>
+                </defs>
+                <rect x="0" y="0" width="32" height="32" rx="9" fill="var(--brand)" mask="url(#bite-20)" />
+                <circle cx="11.5" cy="19" r="2.1" fill="#fff" />
+                <circle cx="20.5" cy="19" r="2.1" fill="#fff" />
+              </svg>
+              <span className="font-display" style={{ fontSize: "clamp(0.95rem, 2vw, 1.1rem)", color: "var(--ink)", lineHeight: 1 }}>Tidbit</span>
             </Link>
             <span style={{ color: "var(--ink-3)", fontSize: "0.86rem" }}>
               Big ideas, served in small bites
@@ -111,24 +131,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
-
-function TidbitLogo({ size = 30 }: { size?: number }) {
-  const id = `bite-${size}`;
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" style={{ flexShrink: 0 }}>
-      <defs>
-        <mask id={id}>
-          <rect x="0" y="0" width="32" height="32" rx="9" fill="#fff" />
-          <circle cx="30" cy="4" r="7.5" fill="#000" />
-        </mask>
-      </defs>
-      <rect x="0" y="0" width="32" height="32" rx="9" fill="var(--brand)" mask={`url(#${id})`} />
-      <circle cx="11.5" cy="19" r="2.1" fill="#fff" />
-      <circle cx="20.5" cy="19" r="2.1" fill="#fff" />
-    </svg>
-  );
-}
-
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link

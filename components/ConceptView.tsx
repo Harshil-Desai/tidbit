@@ -7,6 +7,9 @@ import type { Topic, Subtopic } from "@/data/topics";
 import { subtopicToConceptId } from "@/lib/conceptUtils";
 import FavoriteButton from "@/components/FavoriteButton";
 import TopicIcon from "@/components/TopicIcon";
+import { dsaDiagrams } from "@/components/dsaDiagrams";
+import { systemDesignDiagrams } from "@/components/systemDesignDiagrams";
+import { conceptExtras, type ConceptExtras } from "@/data/conceptExtras";
 
 // ─── SVG diagram primitives ───────────────────────────────────────────────────
 
@@ -67,24 +70,6 @@ function DiagFrame({ children, vb = "0 0 460 240", caption }: {
 }
 
 // ─── Featured diagrams ────────────────────────────────────────────────────────
-
-function LoadBalancingDiagram({ h }: { h: Hue }) {
-  const s = "var(--ink-3)";
-  return (
-    <DiagFrame vb="0 0 460 230" caption="One front door; the load balancer spreads traffic across a healthy pool.">
-      <DiagBox x={14} y={92} w={86} h={46} label="Clients" fill="var(--card)" stroke={s} text="var(--ink)" />
-      <DiagBox x={172} y={88} w={104} h={54} label="Load" sub="Balancer" fill={h.soft} stroke={h.base} text={h.ink} />
-      <DiagArrow x1={100} y1={115} x2={170} y2={115} color={h.base} label="requests" />
-      {[40, 105, 170].map((y, i) => (
-        <g key={i}>
-          <DiagBox x={350} y={y} w={94} h={42} label={`Server ${i + 1}`} fill="var(--card)" stroke={s} text="var(--ink)" dim={i === 2} />
-          <DiagArrow x1={276} y1={115} x2={348} y2={y + 21} color={i === 2 ? s : h.base} dashed={i === 2} />
-        </g>
-      ))}
-      <text x={397} y={232} textAnchor="middle" fontSize="9.5" fill={s} fontFamily="var(--font-body, system-ui)">× health-checked, removed if it fails</text>
-    </DiagFrame>
-  );
-}
 
 function AttentionDiagram({ h }: { h: Hue }) {
   const tok = ["The", "cat", "sat", "down"];
@@ -216,7 +201,7 @@ type FeaturedEntry = {
 const FEATURED: Record<string, FeaturedEntry> = {
   "system-design:Load Balancing": {
     oneLine: "A load balancer is the single front door that quietly spreads visitors across a room full of identical servers — so no one server ever gets crushed.",
-    Diagram: LoadBalancingDiagram,
+    Diagram: systemDesignDiagrams["Load Balancing"],
     analogy: { title: "Like a host at a busy restaurant", text: "Diners don't pick their own table — the host seats them evenly so no waiter is overwhelmed and no table sits empty. If a waiter clocks out, the host just stops seating that section." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>When one server can't handle all your traffic, you run several identical copies. The <strong>load balancer</strong> sits in front of them and decides, for each incoming request, which server should answer using round-robin, least-connections, or consistent hashing.</p><p style={{margin:0}}>Watch out: the load balancer itself is a single point of failure unless deployed in an HA pair. Health checks typically have a 10–30 s interval, so a failing backend can still receive traffic for that window before it is drained.</p></div>,
     keyPoints: ["One entry point, many servers behind it", "Health checks remove dead servers automatically", "Round-robin, least-connections, and hashing are the common strategies", "L4 balancers route on TCP; L7 can route on URL, headers, or cookies", "The load balancer itself must be HA — it is a potential single point of failure"],
@@ -297,765 +282,266 @@ const FEATURED: Record<string, FeaturedEntry> = {
   // ── System Design ──────────────────────────────────────────────────────────
   "system-design:Horizontal vs Vertical Scaling": {
     oneLine: "Vertical scaling makes your one server bigger; horizontal scaling adds more servers — one hits a ceiling, the other scales to millions.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 235" caption="Scale-up: one big box. Scale-out: more boxes behind a balancer.">
-        <DiagBox x={20} y={50} w={130} h={90} label="Vertical" sub="↑ bigger machine" fill={h.soft} stroke={h.base} text={h.ink} />
-        <text x={85} y={165} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">hard ceiling</text>
-        <DiagBox x={210} y={20} w={90} h={40} label="Load Balancer" fill={h.soft} stroke={h.base} text={h.ink} rx={8} />
-        {[70,120,170].map((y,i)=><DiagBox key={i} x={330} y={y} w={110} h={34} label={`Server ${i+1}`} fill="var(--card)" stroke={s} text="var(--ink)" />)}
-        {[70,120,170].map((y,i)=><DiagArrow key={i} x1={300} y1={40} x2={328} y2={y+17} color={h.base} />)}
-        <text x={370} y={222} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">add more →</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Horizontal vs Vertical Scaling"],
     analogy: { title: "Bigger truck vs. a fleet of vans", text: "You can keep buying a bigger truck, but eventually no vehicle can carry your load — a fleet of vans has no practical ceiling." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Vertical scaling</strong> adds CPU, RAM, or faster disks to one machine. It's simple but hits a hard hardware ceiling. <strong>Horizontal scaling</strong> spreads load across many commodity servers. It's more complex (stateless services + load balancer) but can grow indefinitely.</p><p style={{margin:0}}>Watch out: vertical scaling requires a reboot on most cloud instance types, meaning the resize itself causes a second outage window. Database write scaling is also asymmetric — read replicas are horizontal read-scale, but scaling write throughput beyond a single primary requires vertical sizing or sharding.</p></div>,
     keyPoints: ["Vertical: simpler but hits hardware limits", "Horizontal: limitless in theory, requires stateless design", "Most large systems combine both approaches", "Vertical scale-up typically requires a reboot on cloud instances", "Horizontal scaling bakes in fault tolerance — one node failure degrades capacity, not availability"],
   },
   "system-design:Auto-scaling": {
     oneLine: "Auto-scaling watches your traffic and quietly adds or removes servers so you pay for exactly what you need — nothing more, nothing less.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="High traffic triggers scale-out; low traffic triggers scale-in.">
-        <DiagBox x={10} y={80} w={100} h={40} label="Traffic" sub="spike" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={160} y={70} w={120} h={60} label="Auto-scaler" sub="monitor & decide" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagArrow x1={110} y1={100} x2={158} y2={100} color={h.base} />
-        <DiagBox x={340} y={40} w={105} h={36} label="Add instance" fill="var(--card)" stroke={s} text="var(--ink)" rx={8} />
-        <DiagBox x={340} y={124} w={105} h={36} label="Remove instance" fill="var(--card)" stroke={s} text="var(--ink)" rx={8} />
-        <DiagArrow x1={280} y1={88} x2={338} y2={58} color={h.base} label="high" lx={320} ly={68} />
-        <DiagArrow x1={280} y1={112} x2={338} y2={142} color={s} label="low" lx={320} ly={132} />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Auto-scaling"],
     analogy: { title: "Like a restaurant that opens extra tables", text: "When the queue grows, the host opens the back room. When it quiets down, they close it — you only staff what you need." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Auto-scaling continuously monitors a metric (CPU, request rate, queue depth) and adjusts the number of running instances to match demand. <strong>Scale-out</strong> adds instances when load rises; <strong>scale-in</strong> removes them when it drops — keeping costs proportional to usage.</p><p style={{margin:0}}>Watch out: services with heavy cold-start penalties (JVM warm-up, model loading, cache priming) will worsen latency during the exact spikes auto-scaling is meant to absorb. Cooldown periods prevent "flapping" but delay response to genuine sustained load.</p></div>,
     keyPoints: ["Scales out on high load, in on low load", "Driven by metrics: CPU, RPS, queue depth", "Needs warm-up time — plan for lag", "Scale-out fast, scale-in slow with cooldowns to prevent rapid churn", "Only works for stateless, horizontally scalable services behind a load balancer"],
   },
   "system-design:Rate Limiting": {
     oneLine: "Rate limiting caps how many requests a caller can make in a window, protecting your service from floods — accidental or malicious.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Token bucket: each request spends a token; tokens refill steadily.">
-        <DiagBox x={10} y={72} w={100} h={46} label="Client" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={170} y={55} w={120} h={80} label="Token" sub="Bucket" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={350} y={72} w={100} h={46} label="Service" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={110} y1={95} x2={168} y2={95} color={h.base} label="request" />
-        <DiagArrow x1={290} y1={95} x2={348} y2={95} color={h.base} label="pass" />
-        <text x={230} y={165} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">→ 429 if empty</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Rate Limiting"],
     analogy: { title: "Like a bar's clicker counter", text: "The bouncer clicks for every person who enters. Once the venue hits capacity, new arrivals are turned away — no exceptions." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Rate limiting caps requests per client per time window. Common algorithms: <strong>token bucket</strong> (refills at a rate, allows short bursts), <strong>leaky bucket</strong> (drains at a fixed rate, smooths bursts), and <strong>sliding window</strong> (counts requests in a rolling period). Apply at the API gateway so limits are enforced before work begins.</p><p style={{margin:0}}>Watch out: in a clustered deployment, per-node counters silently allow N× the intended limit. Counters must live in a shared store (e.g., Redis) for the limit to be truly global — but that Redis instance then becomes a potential single point of failure.</p></div>,
     keyPoints: ["Prevents overload from any single caller", "Token bucket allows controlled bursts", "Return HTTP 429 with Retry-After header", "Enforce at the edge or gateway, before expensive downstream work", "Distributed counters require a shared store (e.g., Redis) — per-node counters leak excess traffic"],
   },
   "system-design:SQL vs NoSQL": {
     oneLine: "SQL gives you rigid structure and ACID guarantees; NoSQL trades some of that for flexible schemas and horizontal scalability.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
-      <DiagFrame vb="0 0 460 210" caption="SQL normalises into rows and joins them. NoSQL nests data inside a document — fewer joins, more redundancy.">
-        {/* SQL side */}
-        <text x={108} y={18} textAnchor="middle" fontSize="12" fontWeight="700" fill={h.ink} fontFamily={f}>SQL</text>
-        {/* Users table */}
-        <rect x={12} y={24} width={192} height={22} rx={4} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
-        <text x={108} y={38} textAnchor="middle" fontSize="10" fontWeight="700" fill={h.ink} fontFamily={f}>users (id, name, email)</text>
-        {[["1","Alice","a@co"],["2","Bob","b@co"]].map(([id,name,email],i)=>(
-          <g key={i}>
-            <rect x={12} y={46+i*18} width={192} height={18} rx={0} fill="var(--card)" stroke={s} strokeWidth="0.5"/>
-            <text x={28} y={58+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{id}</text>
-            <text x={60} y={58+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{name}</text>
-            <text x={115} y={58+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{email}</text>
-          </g>
-        ))}
-        {/* Orders table */}
-        <rect x={12} y={96} width={192} height={22} rx={4} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
-        <text x={108} y={110} textAnchor="middle" fontSize="10" fontWeight="700" fill={h.ink} fontFamily={f}>orders (id, user_id, total)</text>
-        {[["101","1","$20"],["102","1","$45"]].map(([id,uid,total],i)=>(
-          <g key={i}>
-            <rect x={12} y={118+i*18} width={192} height={18} rx={0} fill="var(--card)" stroke={s} strokeWidth="0.5"/>
-            <text x={28} y={130+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{id}</text>
-            <text x={70} y={130+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{uid}</text>
-            <text x={130} y={130+i*18} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{total}</text>
-          </g>
-        ))}
-        <text x={108} y={172} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>JOIN orders ON user_id = id</text>
-        {/* divider */}
-        <line x1={230} y1={10} x2={230} y2={180} stroke={s} strokeWidth="1" strokeDasharray="5 3"/>
-        {/* NoSQL side */}
-        <text x={345} y={18} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--ink)" fontFamily={f}>NoSQL</text>
-        <rect x={242} y={24} width={208} height={130} rx={6} fill="var(--card)" stroke={s} strokeWidth="1.5"/>
-        <text x={254} y={40} fontSize="9.5" fontWeight="700" fill="var(--ink)" fontFamily={f}>{"{ id: 1, name: \"Alice\","}</text>
-        <text x={254} y={55} fontSize="9.5" fill={h.ink} fontFamily={f}>{"  email: \"a@co\","}</text>
-        <text x={254} y={70} fontSize="9.5" fontWeight="700" fill={h.ink} fontFamily={f}>{"  orders: ["}</text>
-        <text x={262} y={85} fontSize="9.5" fill="var(--ink-2)" fontFamily={f}>{"  { id:101, total:\"$20\" },"}</text>
-        <text x={262} y={100} fontSize="9.5" fill="var(--ink-2)" fontFamily={f}>{"  { id:102, total:\"$45\" }"}</text>
-        <text x={254} y={115} fontSize="9.5" fontWeight="700" fill={h.ink} fontFamily={f}>{"  ]"}</text>
-        <text x={254} y={130} fontSize="9.5" fill="var(--ink)" fontFamily={f}>{"}"}</text>
-        <text x={346} y={172} textAnchor="middle" fontSize="9" fill={s} fontFamily={f}>no join needed — data co-located</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["SQL vs NoSQL"],
     analogy: { title: "Spreadsheet vs. filing cabinet", text: "SQL is a tidy spreadsheet where every row has the same columns. NoSQL is a filing cabinet where each folder can hold whatever papers you stuff in it." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Choose <strong>SQL</strong> when your data has clear relationships, you need joins, or ACID transactions matter (banking, inventory). Choose <strong>NoSQL</strong> when your schema evolves rapidly, you need massive write throughput, or your data is naturally document/key-value shaped (user profiles, sessions, event logs).</p><p style={{margin:0}}>Watch out: denormalized NoSQL schemas duplicate data across documents — a single logical update must be applied to multiple locations, creating consistency drift if any write fails. Cassandra tombstone accumulation from frequent deletes can spike read latency during compaction.</p></div>,
     keyPoints: ["SQL: strong consistency, fixed schema, vertical scale", "NoSQL: flexible schema, eventual consistency, horizontal scale", "Many systems use both for different data", "SQL scales vertically for writes; NoSQL distributes writes across nodes natively", "NoSQL horizontal scaling pushes conflict resolution complexity into application code"],
   },
   "system-design:Database Sharding": {
     oneLine: "Sharding splits one giant database table across multiple nodes by a shard key — each node owns a slice of the data, so writes and storage scale out.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Rows are routed to a shard by key range (or hash).">
-        <DiagBox x={10} y={77} w={110} h={46} label="App / Router" fill="var(--card)" stroke={s} text="var(--ink)" />
-        {[20,90,160].map((y,i)=>(
-          <g key={i}>
-            <DiagBox x={330} y={y} w={120} h={38} label={`Shard ${i+1}`} sub={["A–G","H–P","Q–Z"][i]} fill={i===1?h.soft:"var(--card)"} stroke={i===1?h.base:s} text={i===1?h.ink:"var(--ink)"} />
-            <DiagArrow x1={120} y1={100} x2={328} y2={y+19} color={i===1?h.base:s} />
-          </g>
-        ))}
-        <text x={220} y={195} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">router directs each write to the correct shard</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Database Sharding"],
     analogy: { title: "Like splitting a phone book by last name", text: "A–G goes in volume 1, H–P in volume 2, Q–Z in volume 3. Any lookup goes straight to the right volume — no scanning the others." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Sharding partitions rows across multiple database nodes using a <strong>shard key</strong>. Each node is responsible for a range or hash bucket of keys. Reads and writes for a key go only to its shard, so both storage and write throughput scale linearly with node count. The cost: cross-shard joins and re-sharding when you add nodes.</p><p style={{margin:0}}>Watch out: a poorly chosen shard key (e.g., a low-cardinality or time-based field) creates "hot" shards that recreate the single-node bottleneck. Resharding live traffic requires dual-write and backfill coordination; naive cutover causes write locks or data loss.</p></div>,
     keyPoints: ["Each shard owns a subset of rows by key", "Enables horizontal write scalability", "Cross-shard joins are expensive — choose shard key carefully", "Hash sharding spreads keys evenly; range sharding keeps ordered keys together for scans", "Consistent hashing minimises data movement when adding or removing shards"],
   },
   "system-design:Replication (Leader–Follower, Multi-Leader)": {
     oneLine: "Replication keeps identical copies of your data on multiple nodes — if the leader dies, a follower can take over and reads can spread across replicas.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Leader accepts writes; followers replicate and serve reads.">
-        <DiagBox x={160} y={10} w={130} h={50} label="Leader" sub="writes here" fill={h.soft} stroke={h.base} text={h.ink} />
-        {[20,160,300].map((x,i)=>(
-          <g key={i}>
-            <DiagBox x={x} y={130} w={110} h={46} label={`Follower ${i+1}`} sub="reads" fill="var(--card)" stroke={s} text="var(--ink)" />
-            <DiagArrow x1={225} y1={60} x2={x+55} y2={128} color={h.base} dashed />
-          </g>
-        ))}
-        <text x={230} y={196} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">replication lag possible</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Replication (Leader–Follower, Multi-Leader)"],
     analogy: { title: "Like a publisher and subscribers", text: "Every article is written once at the publisher and distributed to all subscribers. Readers get their own copy; none of them can edit it." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Leader–follower</strong> replication routes all writes to one leader; changes fan out to followers asynchronously. Followers handle reads, reducing load on the leader. <strong>Multi-leader</strong> replication allows writes on multiple nodes simultaneously — great for geo-distributed systems, but requires conflict resolution when two leaders accept conflicting writes.</p><p style={{margin:0}}>Watch out: reading from a lagging follower can return stale data — use read-your-writes consistency when staleness is unacceptable. Without proper fencing on failover, two nodes can simultaneously believe they are leader (split-brain), causing divergent writes.</p></div>,
     keyPoints: ["Leader takes writes; followers serve reads", "Async replication means followers may lag", "Multi-leader enables geo-distributed writes but needs conflict resolution", "A newly promoted follower may be behind the old leader's commit log, causing apparent data rollback", "Use read-your-writes consistency when the client must see its own most-recent write"],
   },
   "system-design:CAP Theorem": {
     oneLine: "A distributed system can only fully guarantee two of three properties — Consistency, Availability, and Partition Tolerance — never all three at once.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Pick any two: CA, CP, or AP — partition tolerance is usually non-negotiable.">
-        <polygon points="230,15 60,175 400,175" fill="none" stroke={s} strokeWidth="2" />
-        <text x={230} y={12} textAnchor="middle" fontSize="13" fontWeight="700" fill={h.ink} fontFamily="var(--font-body,system-ui)">Consistency</text>
-        <text x={30} y={192} textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Availability</text>
-        <text x={422} y={192} textAnchor="middle" fontSize="13" fontWeight="700" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">Partition</text>
-        <text x={230} y={100} textAnchor="middle" fontSize="11" fill={s} fontFamily="var(--font-body,system-ui)">CA · CP · AP</text>
-        <circle cx={230} cy={95} r={28} fill={h.soft} stroke={h.base} strokeWidth="2" />
-        <text x={230} y={99} textAnchor="middle" fontSize="10" fontWeight="700" fill={h.ink} fontFamily="var(--font-body,system-ui)">choose 2</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["CAP Theorem"],
     analogy: { title: "A three-way promise you can't keep", text: "You can promise a bank to always be open, always be accurate, and survive any network outage — but when the network splits, you must pick accuracy or availability." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>In practice, network partitions happen and can't be ignored — so the real choice is <strong>CP</strong> (stay consistent, go unavailable during a partition) vs <strong>AP</strong> (stay available, risk serving stale data). Most distributed databases fall somewhere on this spectrum and let you tune the trade-off per query.</p><p style={{margin:0}}>Watch out: CAP's "Consistency" means linearizability, not eventual consistency. CP systems like etcd refuse writes during leader election; if callers retry aggressively instead of circuit-breaking, the backlog can overwhelm the cluster the moment the partition heals.</p></div>,
     keyPoints: ["Partition tolerance is non-negotiable in distributed systems", "CP: consistent but may reject requests during splits", "AP: always responds but may return stale data", "CP stores (etcd, HBase) sacrifice availability; AP stores (Cassandra, Dynamo) sacrifice strong consistency", "CAP does not cover latency — a CP system can be technically up but too slow to meet SLAs"],
   },
   "system-design:ACID vs BASE": {
     oneLine: "ACID gives you strong transactional guarantees; BASE trades them for availability and eventual consistency — the right choice depends on your tolerance for stale data.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; const f = "var(--font-body,system-ui)"; return (
-      <DiagFrame vb="0 0 460 210" caption="ACID: a transaction either fully commits or fully rolls back — no partial state. BASE: replicas may diverge but eventually converge to the same value.">
-        {/* ACID side */}
-        <text x={108} y={16} textAnchor="middle" fontSize="12" fontWeight="700" fill={h.ink} fontFamily={f}>ACID</text>
-        {/* Transaction timeline */}
-        <line x1={16} y1={40} x2={200} y2={40} stroke={s} strokeWidth="1"/>
-        <text x={16} y={36} fontSize="8" fill={s} fontFamily={f}>time →</text>
-        {/* BEGIN block */}
-        <rect x={16} y={45} width={40} height={28} rx={4} fill="var(--card)" stroke={s} strokeWidth="1"/>
-        <text x={36} y={62} textAnchor="middle" fontSize="8" fill="var(--ink)" fontFamily={f}>BEGIN</text>
-        {/* Work block */}
-        <rect x={64} y={45} width={60} height={28} rx={4} fill={h.soft} stroke={h.base} strokeWidth="1.5"/>
-        <text x={94} y={59} textAnchor="middle" fontSize="8" fontWeight="700" fill={h.ink} fontFamily={f}>work</text>
-        <text x={94} y={69} textAnchor="middle" fontSize="7.5" fill={h.ink} fontFamily={f}>(all or nothing)</text>
-        {/* COMMIT */}
-        <rect x={132} y={45} width={48} height={28} rx={4} fill="#e2f4e9" stroke="#2ba15a" strokeWidth="1.5"/>
-        <text x={156} y={62} textAnchor="middle" fontSize="8" fontWeight="700" fill="#1c8147" fontFamily={f}>COMMIT</text>
-        {/* Rollback path */}
-        <rect x={132} y={88} width={48} height={26} rx={4} fill="#fde7ea" stroke="#e8497b" strokeWidth="1.5"/>
-        <text x={156} y={104} textAnchor="middle" fontSize="8" fontWeight="700" fill="#c72f60" fontFamily={f}>ROLLBACK</text>
-        <line x1={94} y1={73} x2={94} y2={90} stroke={s} strokeWidth="1" strokeDasharray="3 2"/>
-        <line x1={94} y1={90} x2={130} y2={101} stroke={s} strokeWidth="1" strokeDasharray="3 2"/>
-        <text x={100} y={86} fontSize="7.5" fill={s} fontFamily={f}>on error →</text>
-        {/* ACID labels */}
-        {["Atomic","Consistent","Isolated","Durable"].map((t,i)=>(
-          <text key={i} x={16} y={138+i*14} fontSize="9" fill="var(--ink)" fontFamily={f}>✓ {t}</text>
-        ))}
-        {/* divider */}
-        <line x1={226} y1={8} x2={226} y2={200} stroke={s} strokeWidth="1" strokeDasharray="5 3"/>
-        {/* BASE side */}
-        <text x={345} y={16} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--ink)" fontFamily={f}>BASE</text>
-        {/* Two nodes showing divergence then convergence */}
-        <text x={236} y={36} fontSize="8" fill={s} fontFamily={f}>time →</text>
-        <line x1={236} y1={40} x2={450} y2={40} stroke={s} strokeWidth="1"/>
-        {/* Node A */}
-        <text x={240} y={58} fontSize="8" fontWeight="700" fill="var(--ink)" fontFamily={f}>Node A</text>
-        <polyline points="240,65 280,65 300,55 340,55 380,60 420,60" fill="none" stroke={h.base} strokeWidth="2"/>
-        {/* Node B */}
-        <text x={240} y={90} fontSize="8" fontWeight="700" fill="var(--ink)" fontFamily={f}>Node B</text>
-        <polyline points="240,98 280,108 300,110 340,95 380,65 420,60" fill="none" stroke={s} strokeWidth="2" strokeDasharray="5 3"/>
-        {/* Convergence marker */}
-        <line x1={380} y1={42} x2={380} y2={120} stroke="#2ba15a" strokeWidth="1.5" strokeDasharray="4 2"/>
-        <text x={382} y={130} fontSize="7.5" fill="#2ba15a" fontFamily={f}>converge</text>
-        {/* Diverge label */}
-        <text x={300} y={120} textAnchor="middle" fontSize="8" fill={s} fontFamily={f}>nodes diverge briefly</text>
-        {/* BASE labels */}
-        {["Basically Available","Soft state","Eventually consistent"].map((t,i)=>(
-          <text key={i} x={236} y={152+i*14} fontSize="9" fill="var(--ink)" fontFamily={f}>✓ {t}</text>
-        ))}
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["ACID vs BASE"],
     analogy: { title: "Bank account vs. social media likes", text: "Your bank balance must be exactly right the instant you check — ACID. Your like count can be off by a few for a moment — BASE." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>ACID</strong> transactions guarantee every operation is atomic, data is always valid, transactions don't interfere, and commits survive crashes. <strong>BASE</strong> systems sacrifice strict consistency for availability and partition tolerance — data will eventually converge, but may be stale for a window. Use ACID for financial data; BASE is fine for caches, social feeds, and analytics.</p><p style={{margin:0}}>Watch out: BASE systems push conflict resolution into application code — engineers must reason about convergence, idempotency, and read-repair explicitly. Debugging BASE inconsistencies is notoriously difficult because the failure state is non-reproducible and spread across multiple nodes.</p></div>,
     keyPoints: ["ACID: safe for money and inventory", "BASE: acceptable for social, analytics, caches", "Modern databases often let you choose per operation", "ACID transactions impose write serialization overhead and lock contention that caps throughput on hot rows", "BASE systems can sustain high write throughput across geo-distributed nodes with no single coordinator bottleneck"],
   },
   "system-design:Caching Strategies": {
     oneLine: "A cache is a fast nearby copy of slow data — the hard part is deciding when to fill it, when to write through it, and when to invalidate it.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Cache-aside: app checks cache first, falls back to DB on miss, then fills the cache.">
-        <DiagBox x={10} y={77} w={100} h={46} label="App" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={175} y={30} w={110} h={46} label="Cache" sub="fast" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={175} y={124} w={110} h={46} label="Database" sub="source of truth" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={110} y1={90} x2={173} y2={53} color={h.base} label="1. check" lx={148} ly={58} />
-        <DiagArrow x1={173} y1={147} x2={110} y2={110} color={s} label="miss→" lx={148} ly={122} />
-        <DiagArrow x1={110} y1={108} x2={173} y2={147} color={s} label="2. query" lx={130} ly={140} />
-        <DiagArrow x1={230} y1={124} x2={230} y2={78} color={h.base} dashed label="3. fill" lx={244} ly={100} />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Caching Strategies"],
     analogy: { title: "Like keeping today's newspaper on your desk", text: "You check your desk first (cache). If it's not there, you go to the archive room (database) and bring a copy back to your desk for next time." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Cache-aside</strong>: the app checks the cache, queries the DB on a miss, and writes the result back. <strong>Write-through</strong>: every write goes to both cache and DB simultaneously. <strong>Write-behind</strong>: writes go to cache first, then are flushed to the DB asynchronously. Each trades off consistency, latency, and complexity differently.</p><p style={{margin:0}}>Watch out: write-behind is fast but risks data loss if the cache node crashes before the async flush completes — writes acknowledged to the client are permanently lost. When a popular TTL key expires under high load, a thundering herd of requests can hammer the database simultaneously.</p></div>,
     keyPoints: ["Cache-aside is the most common pattern", "Write-through keeps cache and DB in sync", "Always plan for cache invalidation — it's the hard part", "Write-behind (write-back) is fastest but risks losing acknowledged writes before flush", "Write-around skips the cache on writes; the cache fills only on a subsequent read"],
   },
   "system-design:CDN (Content Delivery Network)": {
     oneLine: "A CDN copies your static assets to dozens of edge servers around the world so users download from a server nearby, not one far away.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Origin serves the CDN; users pull from the nearest edge — a cache miss reaches origin.">
-        <DiagBox x={10} y={77} w={110} h={46} label="Origin" sub="server" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={185} y={77} w={90} h={46} label="CDN Edge" sub="nearest PoP" fill={h.soft} stroke={h.base} text={h.ink} />
-        {[20,90,160].map((y,i)=>(
-          <g key={i}>
-            <DiagBox x={340} y={y} w={110} h={36} label={["US user","EU user","APAC user"][i]} fill="var(--card)" stroke={s} text="var(--ink)" />
-            <DiagArrow x1={275} y1={100} x2={338} y2={y+18} color={h.base} />
-          </g>
-        ))}
-        <DiagArrow x1={120} y1={100} x2={183} y2={100} color={s} dashed label="cache miss" />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["CDN (Content Delivery Network)"],
     analogy: { title: "Like a chain of local warehouses", text: "Amazon doesn't ship every order from one warehouse. It stores popular items near you, so delivery is next-day instead of two weeks." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>CDNs work by caching content at Points of Presence (PoPs) close to users. On the first request for an asset, the edge fetches it from the origin and caches it. Subsequent requests are served from the edge — faster and cheaper. Beyond static files, modern CDNs can also route API requests, run edge functions, and terminate TLS.</p><p style={{margin:0}}>Watch out: new JS/CSS deploys leave old assets cached at edge PoPs when versioned URLs are not used, so users receive a mix of old and new file versions until TTL expires. Purge APIs have propagation delays measured in seconds to minutes across all PoPs.</p></div>,
     keyPoints: ["Serves assets from the closest edge node", "Reduces origin load and latency for users worldwide", "Cache-Control headers control how long CDN holds content", "On a cache miss the edge fetches from origin once, then caches it for all subsequent requests", "Always use versioned (hashed) asset filenames to avoid stale cache after deploys"],
   },
   "system-design:Cache Eviction Policies": {
     oneLine: "When a cache fills up, an eviction policy decides which entry to remove — LRU, LFU, and TTL each make a different bet about what you'll need next.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="LRU evicts the least-recently-used entry when the cache is full.">
-        {["A (recent)","B","C","D (oldest)"].map((lbl,i)=>(
-          <DiagBox key={i} x={20+i*105} y={60} w={95} h={50} label={lbl} fill={i===3?h.soft:i===0?"var(--card)":"var(--card)"} stroke={i===3?h.base:s} text={i===3?h.ink:"var(--ink)"} />
-        ))}
-        <text x={435} y={85} fontSize="16" fill={h.base} fontFamily="var(--font-body,system-ui)">✕</text>
-        <text x={230} y={150} textAnchor="middle" fontSize="11" fill={s} fontFamily="var(--font-body,system-ui)">← most recent · · · least recent →</text>
-        <text x={230} y={175} textAnchor="middle" fontSize="10" fill={h.ink} fontFamily="var(--font-body,system-ui)">D evicted on next miss</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Cache Eviction Policies"],
     analogy: { title: "Like clearing your desk", text: "You toss the papers you haven't touched in weeks (LRU). Or you toss the ones you've read least often (LFU). Or they simply expire after a day (TTL)." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>LRU</strong> (Least Recently Used) evicts the entry not accessed for the longest time — good for temporal locality. <strong>LFU</strong> (Least Frequently Used) evicts the entry accessed fewest times — good when popularity matters. <strong>TTL</strong> expires entries after a fixed duration regardless of access — simple and predictable. Redis supports all three; choose based on your access pattern.</p><p style={{margin:0}}>Watch out: LRU is vulnerable to scan pollution — a full-table read sequentially promotes millions of rarely-reused keys, evicting all genuinely hot entries. When many keys share the same TTL (e.g., all set at server startup), they expire simultaneously causing a thundering herd of backend requests.</p></div>,
     keyPoints: ["LRU: evict least recently accessed — most common default", "LFU: evict least frequently accessed — better for popularity-skewed workloads", "TTL: time-based expiry — simplest and most predictable", "LRU is vulnerable to scan pollution from bulk reads that flush all hot entries", "Many real caches combine signals (e.g., LRU + TTL) for better hit rates"],
   },
   "system-design:Redis Architecture": {
     oneLine: "Redis keeps its entire dataset in RAM, executes commands in a single thread, and optionally persists to disk — making it blindingly fast for caching and messaging.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Single-threaded event loop; optional AOF/RDB persistence; replication to replicas.">
-        <DiagBox x={160} y={10} w={130} h={50} label="Redis" sub="in-memory store" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={10} y={120} w={120} h={40} label="AOF" sub="append-only log" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={160} y={120} w={130} h={40} label="RDB Snapshot" sub="periodic dump" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={320} y={120} w={130} h={40} label="Replica" sub="async copy" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={225} y1={60} x2={70} y2={118} color={s} dashed label="persist" lx={120} ly={80} />
-        <DiagArrow x1={225} y1={60} x2={225} y2={118} color={s} dashed />
-        <DiagArrow x1={225} y1={60} x2={385} y2={118} color={h.base} dashed label="replicate" lx={330} ly={80} />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Redis Architecture"],
     analogy: { title: "Like a whiteboard in RAM", text: "Redis reads and writes to a whiteboard in memory — instantaneous. Periodically it photographs the whiteboard to disk so it can redraw it if the power goes out." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Redis stores all data in RAM and processes commands on a single-threaded event loop — no lock contention, predictable microsecond latency. It supports rich data structures (strings, hashes, sorted sets, streams) and two persistence options: <strong>RDB</strong> (periodic snapshots) and <strong>AOF</strong> (every-write log). Redis Cluster shards data across nodes for horizontal scale.</p><p style={{margin:0}}>Watch out: replication is asynchronous by default, so a primary failure risks losing acknowledged writes not yet replicated. During a background AOF rewrite Redis forks, and on large datasets the parent's write latency can spike to hundreds of milliseconds due to copy-on-write memory pressure.</p></div>,
     keyPoints: ["All data in RAM — sub-millisecond reads and writes", "Single-threaded: no locks, but CPU-bound on one core", "AOF + RDB persistence for durability without sacrificing speed", "Rich types: strings, hashes, lists, sorted sets, streams, HyperLogLog", "Async replication by default — primary failure can lose recently acknowledged writes"],
   },
   "system-design:DNS Resolution Flow": {
     oneLine: "When you type a URL, your browser silently asks a chain of four servers to translate that name into an IP address before any real request is sent.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 180" caption="Browser → Resolver → Root → TLD → Authoritative → IP">
-        {["Browser","Resolver","Root NS","TLD NS","Auth NS"].map((lbl,i)=>(
-          <DiagBox key={i} x={10+i*88} y={60} w={80} h={46} label={lbl} fill={i===4?h.soft:i===0?"var(--card)":"var(--card)"} stroke={i===4?h.base:s} text={i===4?h.ink:"var(--ink)"} rx={10} />
-        ))}
-        {[0,1,2,3].map(i=>(
-          <DiagArrow key={i} x1={90+i*88} y1={83} x2={98+i*88} y2={83} color={h.base} />
-        ))}
-        <text x={230} y={155} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">result cached at resolver — TTL controls freshness</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["DNS Resolution Flow"],
     analogy: { title: "Like asking for directions step by step", text: "You ask a local (resolver), who asks the city hall (root), which points to the county clerk (TLD), who directs you to the building owner (authoritative) who finally has the address." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>DNS is a distributed lookup system. Your OS queries a <strong>recursive resolver</strong> (usually your ISP's or 8.8.8.8). If it doesn't have the answer cached, it walks up the hierarchy: <strong>root nameserver</strong> → <strong>TLD nameserver</strong> (e.g. .com) → <strong>authoritative nameserver</strong> for your domain. The final answer (an A or AAAA record) is returned and cached by the resolver for the record's TTL.</p><p style={{margin:0}}>Watch out: sub-second failover via DNS is unreliable because DNS TTL-based switching has inherent propagation delay. Resolvers, OS, and browser caches all layer on top, and client-side caches frequently ignore TTLs, holding stale records well past expiry.</p></div>,
     keyPoints: ["Four-step chain: resolver → root → TLD → authoritative", "Results are cached at the resolver for the record's TTL", "Lower TTL means faster propagation but more DNS traffic", "DNS is not suitable as a sole health-routing mechanism for sub-second failover", "Record types: A/AAAA (address), CNAME (alias), MX (mail), NS (delegation)"],
   },
   "system-design:HTTP vs HTTPS": {
     oneLine: "HTTPS wraps HTTP inside TLS — it encrypts traffic so eavesdroppers can't read it, and authenticates the server so you know you're talking to the real site.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="TLS handshake establishes a session key; all HTTP flows inside that encrypted tunnel.">
-        <DiagBox x={10} y={80} w={90} h={40} label="Browser" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={360} y={80} w={90} h={40} label="Server" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <rect x={140} y={50} width={180} height={100} rx={10} fill={h.soft} stroke={h.base} strokeWidth="2" />
-        <text x={230} y={80} textAnchor="middle" fontSize="11" fontWeight="700" fill={h.ink} fontFamily="var(--font-body,system-ui)">TLS Tunnel</text>
-        <text x={230} y={100} textAnchor="middle" fontSize="10" fill={h.ink} fontFamily="var(--font-body,system-ui)">encrypted + authenticated</text>
-        <text x={230} y={118} textAnchor="middle" fontSize="10" fill={h.ink} fontFamily="var(--font-body,system-ui)">HTTP flows inside</text>
-        <DiagArrow x1={100} y1={100} x2={138} y2={100} color={h.base} />
-        <DiagArrow x1={322} y1={100} x2={358} y2={100} color={h.base} />
-        <text x={230} y={175} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">certificate proves server identity</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["HTTP vs HTTPS"],
     analogy: { title: "Like sending a letter in a locked box", text: "Plain HTTP is a postcard anyone can read. HTTPS puts the message in a locked box — only the real recipient has the key, and the return address is verified." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>TLS performs a handshake before any HTTP is sent: the server presents a certificate, the client verifies it against a trusted CA, and they negotiate a symmetric session key. After that, all HTTP traffic is encrypted. Modern TLS 1.3 reduces the handshake to one round-trip. HTTPS also enables HTTP/2 and HTTP/3, which bring significant performance improvements.</p><p style={{margin:0}}>Watch out: 0-RTT session resumption in TLS 1.3 is vulnerable to replay attacks on non-idempotent endpoints if not explicitly guarded. Certificate expiry causes hard browser errors for all users — even a one-hour expiry window can constitute a full outage if renewal pipelines are manual.</p></div>,
     keyPoints: ["TLS encrypts traffic and authenticates the server", "Certificate chain anchors trust to a CA", "HTTPS is a prerequisite for HTTP/2 and HTTP/3", "Default ports: HTTP 80, HTTPS 443; browsers flag plain HTTP as Not Secure", "TLS 1.3 handshake completes in one round-trip, reducing connection setup latency"],
   },
   "system-design:WebSockets vs HTTP Polling": {
     oneLine: "HTTP polling repeatedly asks 'anything new?' and waits for an answer; WebSockets open a persistent two-way channel so the server can push updates the instant they happen.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Left: polling hammers the server. Right: WebSocket pushes only when data arrives.">
-        <text x={110} y={20} textAnchor="middle" fontSize="11" fontWeight="700" fill={s} fontFamily="var(--font-body,system-ui)">HTTP Polling</text>
-        {[40,80,120,160].map((y,i)=><DiagArrow key={i} x1={20} y1={y} x2={190} y2={y} color={i%2===0?s:h.base} dashed={i%2!==0} label={i%2===0?"req":undefined} />)}
-        <text x={250} y={20} textAnchor="middle" fontSize="11" fontWeight="700" fill={h.ink} fontFamily="var(--font-body,system-ui)">WebSocket</text>
-        <line x1={240} y1={35} x2={240} y2={175} stroke={h.base} strokeWidth="2" />
-        <line x1={440} y1={35} x2={440} y2={175} stroke={h.base} strokeWidth="2" />
-        <DiagArrow x1={240} y1={35} x2={440} y2={35} color={h.base} label="upgrade" />
-        {[80,130].map((y,i)=><DiagArrow key={i} x1={440} y1={y} x2={242} y2={y} color={h.base} label="push" lx={340} ly={y-8} />)}
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["WebSockets vs HTTP Polling"],
     analogy: { title: "Calling to check vs. being texted", text: "Polling is calling every 5 minutes asking 'did my package arrive?' WebSockets is getting a text the moment the courier rings your bell." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Long-polling</strong> holds the request open until data arrives, reducing empty responses. <strong>Server-Sent Events</strong> push a one-way stream over HTTP. <strong>WebSockets</strong> upgrade the HTTP connection to a full-duplex channel — both sides can send at any time, with minimal framing overhead. Use WebSockets for chat, live dashboards, and collaborative editing where sub-second latency matters.</p><p style={{margin:0}}>Watch out: without a shared pub/sub layer (e.g., Redis), a WebSocket message published on one server node is never delivered to clients connected to other nodes — horizontal scaling requires sticky sessions or a broker. Intermediate proxies or NAT gateways also silently drop idle TCP connections.</p></div>,
     keyPoints: ["Polling wastes bandwidth on empty responses", "WebSockets: one handshake, persistent bidirectional channel", "SSE is simpler for server-to-client-only streams", "WebSocket horizontal scaling requires sticky sessions or a shared pub/sub broker", "Long-polling holds the request open until data arrives — fewer empty replies than polling"],
   },
   "system-design:REST vs GraphQL vs gRPC": {
     oneLine: "REST is simple and cacheable; GraphQL lets clients fetch exactly what they need; gRPC is binary, fast, and ideal for internal service-to-service calls.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="REST: many endpoints. GraphQL: one endpoint, shaped query. gRPC: typed binary protocol.">
-        {[["REST","many endpoints","JSON over HTTP","cacheable"],[" GraphQL","one endpoint","shape your query","flexible"],[" gRPC","IDL contract","binary / HTTP2","fast"]] .map(([title,...rows],col)=>(
-          <g key={col}>
-            <DiagBox x={10+col*148} y={10} w={136} h={36} label={title} fill={col===2?h.soft:"var(--card)"} stroke={col===2?h.base:s} text={col===2?h.ink:"var(--ink)"} />
-            {rows.map((r,i)=><text key={i} x={78+col*148} y={70+i*26} textAnchor="middle" fontSize="10" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">{r}</text>)}
-          </g>
-        ))}
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["REST vs GraphQL vs gRPC"],
     analogy: { title: "Menu vs. custom order vs. assembly line", text: "REST is a fixed menu. GraphQL lets you say exactly which toppings you want. gRPC is a factory line — no frills, maximum throughput." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>REST</strong>: resource-based URLs, HTTP verbs, JSON — universally understood and HTTP-cache-friendly. <strong>GraphQL</strong>: a single endpoint where the client describes exactly the data shape it needs — eliminates over- and under-fetching. <strong>gRPC</strong>: uses Protocol Buffers and HTTP/2 for typed, binary, streaming RPC — 5–10× smaller payloads than JSON, ideal for microservice meshes.</p><p style={{margin:0}}>Watch out: GraphQL without DataLoader batching causes N+1 query explosions — each list item triggers a separate resolver DB call. gRPC's HTTP/2 trailers are stripped or rejected by many Layer-7 load balancers, causing silent connection failures in production routing.</p></div>,
     keyPoints: ["REST: simple, cacheable, universally supported", "GraphQL: client-driven queries, one endpoint", "gRPC: binary, strongly typed, best for internal services", "GraphQL requires depth and complexity limits in production to prevent denial-of-service via crafted queries", "gRPC's .proto contract catches interface drift at build time rather than runtime"],
   },
   "system-design:Message Queues vs Event Streams": {
     oneLine: "A message queue delivers each message to one consumer and deletes it; an event stream persists messages so multiple consumers can replay history independently.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Queue: consume and delete. Stream: retain and replay at any offset.">
-        <text x={110} y={20} textAnchor="middle" fontSize="11" fontWeight="700" fill={s} fontFamily="var(--font-body,system-ui)">Message Queue</text>
-        <DiagBox x={20} y={30} w={80} h={36} label="Producer" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={130} y={30} w={80} h={36} label="Queue" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={240} y={30} w={80} h={36} label="Consumer" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={100} y1={48} x2={128} y2={48} color={h.base} />
-        <DiagArrow x1={210} y1={48} x2={238} y2={48} color={h.base} />
-        <text x={170} y={90} textAnchor="middle" fontSize="9" fill={s} fontFamily="var(--font-body,system-ui)">message deleted after ack</text>
-        <text x={340} y={20} textAnchor="middle" fontSize="11" fontWeight="700" fill={h.ink} fontFamily="var(--font-body,system-ui)">Event Stream</text>
-        <DiagBox x={300} y={30} w={150} h={36} label="Log (retained)" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={300} y={100} w={70} h={30} label="Consumer A" fill="var(--card)" stroke={s} text="var(--ink)" rx={8} />
-        <DiagBox x={380} y={100} w={70} h={30} label="Consumer B" fill="var(--card)" stroke={s} text="var(--ink)" rx={8} />
-        <DiagArrow x1={335} y1={66} x2={335} y2={98} color={h.base} />
-        <DiagArrow x1={415} y1={66} x2={415} y2={98} color={h.base} />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Message Queues vs Event Streams"],
     analogy: { title: "Ticket dispenser vs. a bulletin board", text: "A queue is a ticket dispenser — one person takes the ticket and it's gone. A stream is a bulletin board — every subscriber reads it at their own pace, nothing disappears." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Message queues</strong> (RabbitMQ, SQS) deliver each message to exactly one consumer and delete it on acknowledgement — great for task distribution. <strong>Event streams</strong> (Kafka, Kinesis) persist an ordered log; each consumer group tracks its own offset and can replay history. Use streams when multiple services need the same events, or when you need audit logs and replay.</p><p style={{margin:0}}>Watch out: if a Kafka consumer group falls behind and lag exceeds the retention window, events are deleted before processing — causing silent data loss. At-least-once delivery in both systems forces idempotent consumer design, adding complexity to every handler.</p></div>,
     keyPoints: ["Queues: one consumer, delete on ack", "Streams: many consumers, persistent, replayable", "Streams enable event sourcing and audit trails", "Order is guaranteed within a Kafka partition, not across the whole topic", "Kafka's immutable log doubles as an audit trail with zero additional infrastructure"],
   },
   "system-design:Pub/Sub Pattern": {
     oneLine: "Pub/Sub decouples producers from consumers — publishers send to a topic without knowing who's listening, and subscribers receive only the topics they care about.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Publisher → Topic → fan-out to all subscribers.">
-        <DiagBox x={10} y={77} w={100} h={46} label="Publisher" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={175} y={77} w={110} h={46} label="Topic" sub="orders.created" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagArrow x1={110} y1={100} x2={173} y2={100} color={h.base} label="publish" />
-        {[30,90,150].map((y,i)=>(
-          <g key={i}>
-            <DiagBox x={340} y={y} w={110} h={38} label={["Email svc","Inventory","Analytics"][i]} fill="var(--card)" stroke={s} text="var(--ink)" />
-            <DiagArrow x1={285} y1={100} x2={338} y2={y+19} color={h.base} />
-          </g>
-        ))}
-        <text x={230} y={185} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">publisher unaware of subscriber count or type</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Pub/Sub Pattern"],
     analogy: { title: "Like a radio station", text: "The station broadcasts on a frequency without knowing who's tuned in. Anyone with a receiver on that frequency gets the signal instantly — the station never needs to know who that is." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Pub/Sub is the backbone of event-driven architecture. Producers publish events to named topics; consumers subscribe to the topics they need. Adding a new consumer requires zero changes to the producer. The message broker (SNS, Pub/Sub, Redis Streams) handles fan-out, buffering, and delivery guarantees.</p><p style={{margin:0}}>Watch out: pub/sub is inherently fire-and-forget — the publisher cannot receive a synchronous response from a consumer. Achieving exactly-once semantics requires idempotent consumers and transactional producers, adding significant application complexity.</p></div>,
     keyPoints: ["Zero coupling between publisher and subscribers", "Add new consumers without touching the producer", "Broker handles fan-out and delivery guarantees", "Publishers know only the topic, not who (if anyone) is listening", "Exactly-once delivery requires idempotent consumers and transactional producers"],
   },
   "system-design:Kafka Architecture": {
     oneLine: "Kafka is a distributed commit log — producers append to partitioned topics, consumers read at their own pace, and messages are retained for days so any consumer can replay history.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Topic split into partitions; consumer group members each own a partition.">
-        <DiagBox x={10} y={77} w={90} h={46} label="Producer" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={100} y1={100} x2={128} y2={100} color={h.base} />
-        <DiagBox x={130} y={20} w={100} h={36} label="Partition 0" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={130} y={82} w={100} h={36} label="Partition 1" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={130} y={144} w={100} h={36} label="Partition 2" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagArrow x1={230} y1={38} x2={318} y2={60} color={s} />
-        <DiagArrow x1={230} y1={100} x2={318} y2={100} color={s} />
-        <DiagArrow x1={230} y1={162} x2={318} y2={140} color={s} />
-        <DiagBox x={320} y={20} w={130} h={140} label="Consumer" sub="Group" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <text x={385} y={90} textAnchor="middle" fontSize="10" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">C1 ← P0</text>
-        <text x={385} y={110} textAnchor="middle" fontSize="10" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">C2 ← P1</text>
-        <text x={385} y={130} textAnchor="middle" fontSize="10" fill="var(--ink)" fontFamily="var(--font-body,system-ui)">C3 ← P2</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Kafka Architecture"],
     analogy: { title: "Like a logbook with multiple readers", text: "Every event is written sequentially into a logbook. Multiple readers each have a bookmark — they read at their own pace and can go back to re-read any page at any time." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Kafka partitions topics across brokers for parallelism. Producers append to the partition determined by a key (or round-robin). Each <strong>consumer group</strong> gets a private cursor (offset) per partition — one consumer per partition, fully parallel. Increasing partitions scales throughput; increasing consumer groups adds independent subscribers. Retention (default 7 days) enables replay and recovery.</p><p style={{margin:0}}>Watch out: partition count is effectively immutable after creation — under-partitioning at design time creates a hard throughput ceiling that requires painful topic recreation to fix. With unclean.leader.election.enable=true, a broker with stale data can be elected leader, silently serving older offsets.</p></div>,
     keyPoints: ["Partitions enable parallel writes and reads", "Consumer groups each track independent offsets", "Retention makes replay and recovery possible", "Order is guaranteed within a partition, not across the whole topic", "Partition count cannot be reduced after creation — plan capacity up front"],
   },
   "system-design:Dead Letter Queues": {
     oneLine: "A Dead Letter Queue catches messages that fail processing repeatedly so they don't block the main queue — you can inspect and replay them later without losing the data.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="After N retries the message is moved to the DLQ — not dropped.">
-        <DiagBox x={10} y={77} w={100} h={46} label="Main Queue" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={170} y={77} w={100} h={46} label="Consumer" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={110} y1={100} x2={168} y2={100} color={h.base} />
-        <DiagArrow x1={220} y1={123} x2={220} y2={155} color={s} label="fail ×N" lx={240} ly={142} />
-        <DiagBox x={155} y={155} w={130} h={30} label="Dead Letter Queue" fill={h.soft} stroke={h.base} text={h.ink} rx={8} />
-        <DiagBox x={350} y={155} w={100} h={30} label="Inspect / Replay" fill="var(--card)" stroke={s} text="var(--ink)" rx={8} />
-        <DiagArrow x1={285} y1={170} x2={348} y2={170} color={h.base} dashed />
-        <text x={230} y={50} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">main queue unblocked — poison messages isolated</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Dead Letter Queues"],
     analogy: { title: "Like returned mail", text: "A letter that can't be delivered three times isn't thrown away — it's set aside in a 'return to sender' pile for the postmaster to inspect and re-route later." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>When a consumer fails to process a message after a configured number of retries, the broker moves it to the <strong>DLQ</strong>. The main queue stays unblocked — no poison message can halt all processing. DLQ messages are preserved with their original metadata (headers, timestamp, original queue) so you can diagnose root causes, fix the consumer, and replay them safely.</p><p style={{margin:0}}>Watch out: replaying a large DLQ backlog at full speed overwhelms the consumer or downstream database, replicating the original outage. Without alerting on DLQ depth, thousands of failed messages accumulate undetected while the main queue appears healthy.</p></div>,
     keyPoints: ["Isolates poison messages so main queue keeps flowing", "Preserves failed messages for inspection and replay", "Alert on DLQ depth — it signals a processing failure", "Triggered after a configured max-retry or max-delivery count is exceeded", "Replay from the DLQ at a throttled rate to avoid overwhelming the consumer"],
   },
   "system-design:API Gateway Pattern": {
     oneLine: "An API Gateway is the single front door for all clients — it handles routing, authentication, rate limiting, and protocol translation before requests reach any backend service.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="One entry point handles cross-cutting concerns; backends stay simple.">
-        {["Web","Mobile","3rd Party"].map((lbl,i)=>(
-          <g key={i}>
-            <DiagBox x={10} y={30+i*56} w={80} h={40} label={lbl} fill="var(--card)" stroke={s} text="var(--ink)" />
-            <DiagArrow x1={90} y1={50+i*56} x2={148} y2={100} color={s} />
-          </g>
-        ))}
-        <DiagBox x={150} y={70} w={120} h={60} label="API Gateway" sub="auth · rate · route" fill={h.soft} stroke={h.base} text={h.ink} />
-        {["Users svc","Orders svc","Search svc"].map((lbl,i)=>(
-          <g key={i}>
-            <DiagBox x={330} y={30+i*56} w={120} h={40} label={lbl} fill="var(--card)" stroke={s} text="var(--ink)" />
-            <DiagArrow x1={270} y1={100} x2={328} y2={50+i*56} color={h.base} />
-          </g>
-        ))}
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["API Gateway Pattern"],
     analogy: { title: "Like a hotel reception desk", text: "Guests don't wander backstage — they talk to reception. Reception handles identity checks, routes them to the right department, and enforces house rules." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>The gateway centralises cross-cutting concerns: <strong>authentication</strong> (verify JWT/API key), <strong>rate limiting</strong> (per client), <strong>routing</strong> (path → service), <strong>SSL termination</strong>, and <strong>request/response transformation</strong>. Backend services become simpler because they assume requests are already validated. Popular choices: AWS API Gateway, Kong, Nginx, Envoy.</p><p style={{margin:0}}>Watch out: the gateway becomes a latency-adding hop in every request path — misconfigured timeouts or plugin chains can silently inflate p99 latency. Route rules and auth policies updated in the gateway can lag behind service deployments, causing 401s or 404s in production.</p></div>,
     keyPoints: ["Single entry point for all clients", "Centralises auth, rate limiting, and routing", "Backends stay simple — they trust the gateway", "The gateway itself must be HA — it is a single point of failure for all traffic", "Avoid pushing business logic into the gateway; keep it a thin routing and policy layer"],
   },
   "system-design:Service Mesh": {
     oneLine: "A service mesh injects a sidecar proxy into every pod so that retries, mTLS, tracing, and traffic management happen at the infrastructure layer — not in application code.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Sidecars intercept all traffic — app code stays simple.">
-        <DiagBox x={20} y={30} w={80} h={40} label="Service A" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={20} y={90} w={80} h={40} label="Sidecar" sub="proxy" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={300} y={30} w={80} h={40} label="Service B" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={300} y={90} w={80} h={40} label="Sidecar" sub="proxy" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagArrow x1={100} y1={110} x2={298} y2={110} color={h.base} label="mTLS · retries · tracing" />
-        <DiagBox x={155} y={155} w={150} h={36} label="Control Plane" sub="Istio / Linkerd" fill="var(--card)" stroke={s} text="var(--ink)" rx={8} />
-        <DiagArrow x1={60} y1={130} x2={175} y2={153} color={s} dashed />
-        <DiagArrow x1={340} y1={130} x2={285} y2={153} color={s} dashed />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Service Mesh"],
     analogy: { title: "Like a dedicated security escort for every employee", text: "Instead of each employee learning security protocols, a trained escort accompanies every person. Policies change centrally — employees just do their jobs." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A service mesh (Istio, Linkerd) deploys a lightweight proxy sidecar next to each service instance. All inbound and outbound traffic flows through the sidecar, which enforces <strong>mTLS</strong> (mutual auth), circuit breaking, retries, and emits traces — without any code changes in the service. A central <strong>control plane</strong> pushes policy updates to all sidecars.</p><p style={{margin:0}}>Watch out: each sidecar proxy adds 1–2 ms per hop and consumes additional CPU and memory per pod. When the control plane (e.g., Istio Pilot) is unavailable, sidecars cannot refresh routing configuration, causing stale rules to persist and new deployments to fail traffic registration.</p></div>,
     keyPoints: ["Sidecars handle retries, mTLS, and tracing transparently", "No code changes needed in services", "Control plane pushes policy to all proxies centrally", "Each sidecar adds 1–2 ms of latency per hop at the infrastructure layer", "Sidecar injection must complete before a pod makes outbound calls or mTLS guarantees can be bypassed"],
   },
   "system-design:Circuit Breaker Pattern": {
     oneLine: "A circuit breaker wraps calls to a dependency and trips open when failures pile up — failing fast instead of queuing doomed requests until the whole system backs up.",
-    Diagram: CircuitBreakerDiagram,
+    Diagram: systemDesignDiagrams["Circuit Breaker Pattern"],
     analogy: { title: "Like the breaker in your home", text: "When a circuit overloads, the breaker trips and cuts power rather than letting wiring melt. After a moment you flip it back to test — if all is well, power resumes." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Three states: <strong>Closed</strong> (calls flow normally, failures counted), <strong>Open</strong> (calls fail instantly without hitting the dependency), <strong>Half-open</strong> (probe calls test recovery). Failing fast frees threads and gives the struggling service room to recover instead of being hammered. Libraries: Resilience4j, Polly, Hystrix.</p><p style={{margin:0}}>Watch out: each service instance tracks failures independently in memory, so the circuit never trips cluster-wide unless state is centralised (e.g., in Redis). Thresholds calibrated on normal traffic become hair-triggers during spikes, causing false trips that take down a healthy service at peak load.</p></div>,
     keyPoints: ["Closed → Open → Half-open → Closed", "Open state prevents cascading failure", "Give struggling services breathing room to recover", "Distributed deployments need shared state for accurate cluster-wide trip logic", "Half-open probe calls must be throttled to avoid a thundering herd on the recovering dependency"],
   },
   "system-design:Saga Pattern": {
     oneLine: "A saga breaks a distributed transaction into a sequence of local transactions, each publishing an event — and if any step fails, compensating transactions undo the previous steps.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Choreography saga: each service listens for events and emits the next one — or a compensation on failure.">
-        {["Order svc","Payment svc","Inventory svc"].map((lbl,i)=>(
-          <g key={i}>
-            <DiagBox x={10+i*148} y={40} w={130} h={40} label={lbl} fill={i===1?h.soft:"var(--card)"} stroke={i===1?h.base:s} text={i===1?h.ink:"var(--ink)"} />
-            {i<2&&<DiagArrow x1={140+i*148} y1={60} x2={158+i*148} y2={60} color={h.base} label="event" />}
-          </g>
-        ))}
-        <text x={230} y={110} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">── failure at any step ──▶</text>
-        {["Restore inventory","Refund payment","Cancel order"].map((lbl,i)=>(
-          <g key={i}>
-            <DiagBox x={10+(2-i)*148} y={130} w={130} h={40} label={lbl} sub="compensate" fill="var(--card)" stroke={s} text="var(--ink)" rx={8} />
-            {i<2&&<DiagArrow x1={158+(1-i)*148} y1={150} x2={140+(1-i)*148} y2={150} color={s} dashed />}
-          </g>
-        ))}
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Saga Pattern"],
     analogy: { title: "Like a multi-stop flight booking", text: "Booking flight + hotel + car one step at a time — if the car hire fails, the hotel is cancelled and the flight refunded. Each cancellation is its own transaction." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Sagas avoid distributed locks. <strong>Choreography</strong>: each service listens for an event and emits the next, with each service responsible for its own compensation. <strong>Orchestration</strong>: a central saga orchestrator commands each step and handles compensation. Use sagas when a business operation spans multiple services that each have their own database.</p><p style={{margin:0}}>Watch out: compensating transactions must be idempotent — a choreography saga can re-deliver an event after a network timeout, triggering duplicate charges or double inventory deductions if handlers are not idempotent. Each forward step needs a tested, maintained undo path.</p></div>,
     keyPoints: ["Chains local transactions instead of distributed ones", "Compensation transactions undo on failure", "Choreography vs orchestration: decentralised vs coordinated", "Every forward step requires a tested, idempotent compensating action", "Temporary inconsistency between steps forces consumers to handle intermediate states explicitly"],
   },
   "system-design:Fault Tolerance & Redundancy": {
     oneLine: "Fault tolerance means the system keeps working when components fail; redundancy achieves that by running multiple copies so no single failure takes everything down.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Active–passive: traffic flows to primary; standby takes over on failure.">
-        <DiagBox x={10} y={77} w={100} h={46} label="Clients" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={175} y={50} w={120} h={46} label="Primary" sub="active" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={175} y={120} w={120} h={46} label="Standby" sub="passive" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={110} y1={100} x2={173} y2={73} color={h.base} label="traffic" />
-        <line x1={235} y1={96} x2={235} y2={118} stroke={s} strokeWidth="1.5" strokeDasharray="4 3" />
-        <text x={265} y={110} fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">heartbeat</text>
-        <DiagArrow x1={295} y1={143} x2={360} y2={143} color={h.base} dashed label="failover" />
-        <DiagBox x={362} y={120} w={90} h={46} label="Takes over" fill={h.soft} stroke={h.base} text={h.ink} rx={8} />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Fault Tolerance & Redundancy"],
     analogy: { title: "Like a spare tyre", text: "You don't drive on the spare — it sits in the boot until the main tyre fails. When it does, you're not stranded: redundancy buys you time to get back on the road." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Redundancy eliminates single points of failure by duplicating critical components: servers, power supplies, network links, databases. <strong>Active–active</strong> runs all replicas simultaneously and shares the load. <strong>Active–passive</strong> keeps standby warm and promotes it on failure. Combined with health checks and automated failover, redundancy turns hardware failures into brief blips.</p><p style={{margin:0}}>Watch out: if replication lag is not monitored, a passive replica that takes over may serve data that is seconds or minutes behind, causing silent data loss at the exact moment fault tolerance is supposed to protect you. Redundancy without chaos testing gives false confidence.</p></div>,
     keyPoints: ["Eliminate every single point of failure", "Active–active shares load; active–passive keeps a warm spare", "Automate failover so humans don't need to respond at 3 am", "N+1 redundancy provisions one spare beyond minimum load capacity", "Geographic redundancy across AZs provides resilience against entire data center outages"],
   },
   "system-design:Failover Strategies": {
     oneLine: "Failover automatically switches traffic from a failed component to a healthy standby — the key variables are detection time, promotion time, and whether any data is lost.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Health probe detects failure → load balancer routes to replica → replica promoted.">
-        <DiagBox x={10} y={77} w={100} h={46} label="LB / DNS" sub="health probe" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={175} y={50} w={110} h={40} label="Primary" sub="✕ failed" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={175} y={130} w={110} h={40} label="Replica" sub="promoted" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagArrow x1={110} y1={100} x2={173} y2={70} color={s} dashed label="was" />
-        <DiagArrow x1={110} y1={100} x2={173} y2={150} color={h.base} label="now" />
-        <text x={340} y={100} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">RTO: time to recover</text>
-        <text x={340} y={120} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">RPO: data loss window</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Failover Strategies"],
     analogy: { title: "Like a deputy who takes charge instantly", text: "When the mayor is incapacitated, the deputy steps in without a vote — city business continues with minimal interruption." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Two key metrics: <strong>RTO</strong> (Recovery Time Objective) — how long the system can be down, and <strong>RPO</strong> (Recovery Point Objective) — how much data loss is acceptable. Synchronous replication reduces RPO to zero but adds write latency. DNS failover is simple but slow (TTL delays). Cloud load balancers with health checks can fail over in under 30 seconds.</p><p style={{margin:0}}>Watch out: without proper fencing, both primary and standby can simultaneously believe they are active (split-brain), accepting conflicting writes. A stale standby promoted during failover silently loses committed transactions that had not yet replicated.</p></div>,
     keyPoints: ["RTO: max acceptable downtime", "RPO: max acceptable data loss", "Automated health-check failover beats manual intervention every time", "Synchronous replication achieves near-zero RPO but adds write-path latency on every commit", "Heartbeat-based failure detection must use fencing or quorum to prevent split-brain promotion"],
   },
   "system-design:Chaos Engineering": {
     oneLine: "Chaos engineering deliberately injects failures into a live system to discover weaknesses before they manifest as real outages — you break it on your terms, not a customer's.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Chaos monkey injects faults; system should stay within steady-state behaviour.">
-        <DiagBox x={10} y={77} w={110} h={46} label="Production" sub="system" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={175} y={50} w={110} h={46} label="Kill instance" fill={h.soft} stroke={h.base} text={h.ink} rx={8} />
-        <DiagBox x={175} y={120} w={110} h={46} label="Inject latency" fill={h.soft} stroke={h.base} text={h.ink} rx={8} />
-        <DiagBox x={340} y={77} w={110} h={46} label="Observe &" sub="learn" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={120} y1={90} x2={173} y2={73} color={h.base} label="inject" />
-        <DiagArrow x1={120} y1={110} x2={173} y2={143} color={h.base} />
-        <DiagArrow x1={285} y1={73} x2={338} y2={90} color={s} />
-        <DiagArrow x1={285} y1={143} x2={338} y2={110} color={s} />
-        <text x={230} y={185} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">known blast radius &gt; unknown surprise</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Chaos Engineering"],
     analogy: { title: "Like fire drills", text: "Instead of hoping you never have a fire, you schedule a drill. You find the exit-sign that's burned out and the door that's stuck — before the real emergency." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>The discipline: define a steady-state hypothesis (e.g. p99 latency &lt; 200 ms), inject a failure (kill a node, saturate a network link, corrupt a dependency), and verify the system stays within the hypothesis. Netflix's Chaos Monkey pioneered this. Start in non-production, build confidence, then run in production during low-traffic hours.</p><p style={{margin:0}}>Watch out: always configure an automated halt condition — if no kill switch is set, an experiment can continue after the system breaches SLO thresholds, turning a controlled test into a prolonged production incident. Without a quantified steady-state metric, results are inconclusive.</p></div>,
     keyPoints: ["Find weaknesses on your terms, not during an incident", "Define steady-state hypothesis before each experiment", "Start small in staging; graduate to production", "Always configure a kill switch to abort the experiment if SLOs are breached", "Unbounded blast radius — always scope experiments to avoid hitting shared databases or brokers"],
   },
   "system-design:SLA / SLO / SLI": {
     oneLine: "SLIs measure what's actually happening, SLOs are internal targets you set for those measurements, and SLAs are the contractual promises you make to customers — violations have consequences.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="SLI (measured) feeds into SLO (target) which underlies the SLA (contract).">
-        <DiagBox x={10} y={77} w={100} h={46} label="SLI" sub="measured" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={175} y={60} w={110} h={80} label="SLO" sub="internal target" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={350} y={77} w={100} h={46} label="SLA" sub="contract" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={110} y1={100} x2={173} y2={100} color={h.base} label="feeds" />
-        <DiagArrow x1={285} y1={100} x2={348} y2={100} color={h.base} label="backs" />
-        <text x={230} y={170} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">SLO tighter than SLA → buffer for fixes before breach</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["SLA / SLO / SLI"],
     analogy: { title: "Speedometer, speed limit, and a contract", text: "The speedometer is your SLI. Your personal target of 65 mph is your SLO. The legal speed limit — with penalties — is the SLA." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>SLI</strong>: a concrete metric (success rate, p99 latency, error rate). <strong>SLO</strong>: the target value for an SLI that your team commits to internally (e.g. 99.9% success rate). <strong>SLA</strong>: a customer-facing contract backed by the SLO, with financial penalties for breaches. Set your SLO tighter than the SLA to have an error budget — room to absorb incidents before a contract violation.</p><p style={{margin:0}}>Watch out: measuring SLI only at the load balancer but excluding downstream dependency timeouts makes SLI look healthy while users experience cascading failures. Using a 30-day rolling window can mask a two-hour outage that consumed the entire monthly budget in one incident.</p></div>,
     keyPoints: ["SLI: what you measure, SLO: what you aim for, SLA: what you promise", "Error budget = 1 − SLO — spend it on features, not outages", "SLO should always be stricter than the SLA", "SLO-driven alerting focuses on user-impacting burn rates, reducing noisy threshold alerts", "SLAs set looser than SLOs give engineering a buffer before contract penalties trigger"],
   },
   "system-design:Consistent Hashing": {
     oneLine: "Consistent hashing places both keys and nodes on a virtual ring so that when a node is added or removed, only a fraction of keys need to move — not everything.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Keys and nodes share a ring — each key is served by the next node clockwise.">
-        <circle cx={230} cy={100} r={80} fill="none" stroke={s} strokeWidth="2" />
-        {[0,1,2,3].map(i=>{
-          const a=i*Math.PI/2-Math.PI/4; const r=80;
-          const nx=230+r*Math.cos(a), ny=100+r*Math.sin(a);
-          return <circle key={i} cx={nx} cy={ny} r={14} fill={h.soft} stroke={h.base} strokeWidth="2" />;
-        })}
-        {[0,1,2,3].map(i=>{
-          const a=i*Math.PI/2-Math.PI/4; const r=80;
-          const nx=230+r*Math.cos(a), ny=100+r*Math.sin(a);
-          return <text key={i} x={nx} y={ny+4} textAnchor="middle" fontSize="9" fontWeight="700" fill={h.ink} fontFamily="var(--font-body,system-ui)">{`N${i+1}`}</text>;
-        })}
-        {[1,2,3].map(i=>{
-          const a=i*Math.PI/2; const r=80;
-          const kx=230+r*Math.cos(a), ky=100+r*Math.sin(a);
-          return <rect key={i} x={kx-8} y={ky-8} width={16} height={16} rx={4} fill="var(--card)" stroke={s} strokeWidth="1.5" />;
-        })}
-        <text x={230} y={104} textAnchor="middle" fontSize="9" fill={s} fontFamily="var(--font-body,system-ui)">key ring</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Consistent Hashing"],
     analogy: { title: "Like seats at a round table", text: "Each guest (node) claims the seats to their left. Add a new guest — only nearby seats shuffle; everyone else stays put." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Traditional modular hashing moves almost all keys when the cluster size changes. Consistent hashing maps both keys and nodes to a unit ring. A key is owned by the first node clockwise from its hash. Add a node: only the keys between it and its predecessor move. Remove a node: only its keys redistribute. Virtual nodes (vnodes) smooth out uneven distributions.</p><p style={{margin:0}}>Watch out: with fewer than 100–150 vnodes per physical node, the ring remains uneven and one node can hold 2–3× the data of another. When a node fails, its entire key range shifts to one clockwise neighbor, potentially doubling that node's load and triggering a cascade if the cluster is already near capacity.</p></div>,
     keyPoints: ["Adding/removing a node moves only O(K/N) keys", "Virtual nodes spread load evenly across real nodes", "Used in Cassandra, DynamoDB, and many CDNs", "A node failure shifts its key range to one clockwise neighbor — size vnodes generously to absorb this", "No central routing table needed — any client computes key ownership independently from the ring"],
   },
   "system-design:Consensus (Raft Algorithm)": {
     oneLine: "Raft is the algorithm that lets a cluster of nodes agree on a single sequence of values even when some nodes crash — by electing a leader who proposes all changes.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Leader elected by majority vote; all writes go through the leader and are replicated.">
-        <DiagBox x={160} y={10} w={130} h={50} label="Leader" sub="proposes entries" fill={h.soft} stroke={h.base} text={h.ink} />
-        {[20,320].map((x,i)=>(
-          <g key={i}>
-            <DiagBox x={x} y={130} w={110} h={46} label="Follower" sub={i===0?"voted for":"voted for"} fill="var(--card)" stroke={s} text="var(--ink)" />
-            <DiagArrow x1={225} y1={60} x2={x+55} y2={128} color={h.base} label={i===0?"replicate":undefined} dashed />
-            <DiagArrow x1={x+55} y1={128} x2={225} y2={60} color={s} dashed label={i===0?"ack":undefined} lx={i===0?140:310} ly={95} />
-          </g>
-        ))}
-        <text x={230} y={195} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">commit requires majority acknowledgement</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Consensus (Raft Algorithm)"],
     analogy: { title: "Like a committee with a chairperson", text: "The chair proposes every motion. A motion only passes when the majority agrees. If the chair is absent, the committee elects a new one before any more business is done." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Raft divides consensus into three sub-problems: <strong>leader election</strong> (the node with the most up-to-date log wins a majority vote), <strong>log replication</strong> (leader appends entries and replicates to followers before committing), and <strong>safety</strong> (a committed entry is guaranteed to appear in all future leaders' logs). Used in etcd, CockroachDB, and Consul.</p><p style={{margin:0}}>Watch out: all writes are serialized through a single leader, so a hot-spot workload or a leader on degraded hardware saturates its disk or network and stalls the entire cluster write path. Quorum writes mean latency is bounded by the slowest responding majority member.</p></div>,
     keyPoints: ["One leader per term — all writes go through it", "Commit requires acknowledgement from a majority", "Leader election restarts automatically when leader is lost", "A cluster of 2f+1 nodes tolerates f simultaneous failures", "The single-leader model caps write throughput to one node's capacity"],
   },
   "system-design:Distributed Transactions (2PC)": {
     oneLine: "Two-phase commit coordinates an atomic write across multiple databases — all participants vote to commit, and only if every one agrees does the coordinator make it permanent.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Phase 1: vote (prepare). Phase 2: commit or abort based on all votes.">
-        <DiagBox x={160} y={10} w={130} h={40} label="Coordinator" fill={h.soft} stroke={h.base} text={h.ink} />
-        {[40,320].map((x,i)=>(
-          <g key={i}>
-            <DiagBox x={x} y={80} w={110} h={40} label={`Participant ${i+1}`} fill="var(--card)" stroke={s} text="var(--ink)" />
-            <DiagBox x={x} y={150} w={110} h={40} label={i===0?"VOTE YES":"VOTE YES"} sub="prepared" fill={h.soft} stroke={h.base} text={h.ink} rx={8} />
-            <DiagArrow x1={225} y1={50} x2={x+55} y2={78} color={h.base} label={i===0?"prepare":undefined} />
-            <DiagArrow x1={x+55} y1={120} x2={225} y2={148} color={s} dashed />
-            <DiagArrow x1={225} y1={148} x2={x+55} y2={148} color={h.base} dashed label={i===0?"commit":undefined} />
-          </g>
-        ))}
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Distributed Transactions (2PC)"],
     analogy: { title: "Like asking every guest if they can attend a meeting", text: "You send a 'can you make Thursday?' email. Only if every single person replies 'yes' do you send the calendar invite. One 'no' and you reschedule." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>In <strong>Phase 1 (Prepare)</strong>, the coordinator asks each participant to lock resources and vote yes/no. In <strong>Phase 2 (Commit/Abort)</strong>, if all voted yes the coordinator broadcasts commit; otherwise it broadcasts abort. 2PC is blocking — if the coordinator crashes after prepare, participants are stuck holding locks. Consider Saga pattern or distributed databases (CockroachDB) for production-grade solutions.</p><p style={{margin:0}}>Watch out: a network partition after some participants receive "commit" and others do not leaves the system in a split-brain state — part of the data committed, part not. A single slow participant blocks the entire transaction because the coordinator must wait for all votes before proceeding.</p></div>,
     keyPoints: ["All participants must vote yes or the transaction aborts", "Coordinator crash during phase 2 can leave participants stuck", "Saga pattern or distributed DBs are often better in practice", "2PC holds locks across all participants for both phases, limiting throughput under high concurrency", "XA transaction recovery after a coordinator crash requires manual DBA intervention"],
   },
   "system-design:Vector Clocks": {
     oneLine: "Vector clocks track causality in distributed systems by giving each node its own counter — comparing two vectors reveals whether one event happened before another or if they're concurrent.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Node A and B exchange messages; clocks advance — concurrent updates detected by incomparable vectors.">
-        <text x={80} y={20} textAnchor="middle" fontSize="11" fontWeight="700" fill={s} fontFamily="var(--font-body,system-ui)">Node A</text>
-        <text x={380} y={20} textAnchor="middle" fontSize="11" fontWeight="700" fill={s} fontFamily="var(--font-body,system-ui)">Node B</text>
-        <line x1={80} y1={25} x2={80} y2={165} stroke={s} strokeWidth="1.5" />
-        <line x1={380} y1={25} x2={380} y2={165} stroke={s} strokeWidth="1.5" />
-        {[["{A:1,B:0}",40],["{A:2,B:0}",90],["{A:2,B:2}",150]].map(([v,y],i)=>(
-          <text key={i} x={80} y={y as number} textAnchor="middle" fontSize="9.5" fill={h.ink} fontFamily="var(--font-body,system-ui)">{v}</text>
-        ))}
-        {[["{A:0,B:1}",55],["{A:2,B:2}",115],["{A:2,B:3}",165]].map(([v,y],i)=>(
-          <text key={i} x={380} y={y as number} textAnchor="middle" fontSize="9.5" fill={h.ink} fontFamily="var(--font-body,system-ui)">{v}</text>
-        ))}
-        <DiagArrow x1={80} y1={90} x2={378} y2={115} color={h.base} label="sync" />
-        <DiagArrow x1={380} y1={55} x2={82} y2={150} color={s} dashed label="sync" lx={230} ly={110} />
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Vector Clocks"],
     analogy: { title: "Like a shared to-do list with initials", text: "Each person writes their initials next to changes they make. You can tell whose change came from whose version — and when two people changed the same item 'at the same time', both sets of initials are there." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Each node maintains a vector of counters — one per node. On a local event, increment your own counter. On receiving a message, merge by taking the max of each position and then increment your counter. Two events are causally related if one vector dominates the other. If neither dominates, the events are <strong>concurrent</strong> and may conflict — your application must resolve.</p><p style={{margin:0}}>Watch out: in systems where every client or ephemeral worker gets its own vector entry, vectors grow unboundedly — inflating payload size and making comparison O(n) per operation. If a restarted node reuses its old ID without resetting its counter, its events appear causally prior to newer events from other nodes.</p></div>,
     keyPoints: ["Each node has its own counter in the vector", "One vector dominates another = causal relationship", "Incomparable vectors = concurrent, possibly conflicting updates", "Vector size scales linearly with the number of unique writers — unbounded node IDs cause clock explosion", "Conflict resolution logic must be implemented at the application layer; vector clocks only detect conflicts"],
   },
   "system-design:Logging vs Metrics vs Tracing": {
     oneLine: "Logs tell you what happened in words, metrics show trends as numbers, and traces follow a request's path through every service — together they form complete observability.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Three complementary signals — use logs to investigate, metrics to detect, traces to locate.">
-        <DiagBox x={10} y={50} w={130} h={100} label="Logs" sub="what happened" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <text x={75} y={105} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">ERROR 404 /api/user</text>
-        <text x={75} y={120} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">free text, searchable</text>
-        <DiagBox x={165} y={50} w={130} h={100} label="Metrics" sub="how much / how fast" fill={h.soft} stroke={h.base} text={h.ink} />
-        <text x={230} y={105} textAnchor="middle" fontSize="9.5" fill={h.ink} fontFamily="var(--font-body,system-ui)">rps=142 p99=88ms</text>
-        <text x={230} y={120} textAnchor="middle" fontSize="9.5" fill={h.ink} fontFamily="var(--font-body,system-ui)">aggregated, alertable</text>
-        <DiagBox x={320} y={50} w={130} h={100} label="Traces" sub="which path, how long" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <text x={385} y={105} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">A→B 12ms B→C 34ms</text>
-        <text x={385} y={120} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">distributed spans</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Logging vs Metrics vs Tracing"],
     analogy: { title: "Security footage vs. door counter vs. GPS tracker", text: "Logs are the CCTV footage of what happened. Metrics are the people-counter above the door. Traces are GPS tracking each visitor's path through the building." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Logs</strong>: timestamped, structured text events — great for post-incident investigation. <strong>Metrics</strong>: numeric time-series (counters, gauges, histograms) — cheap to aggregate, ideal for dashboards and alerts. <strong>Traces</strong>: distributed spans linked by a trace ID — show latency and errors across service boundaries. The ELK stack, Prometheus, and Jaeger/Tempo are the common implementations.</p><p style={{margin:0}}>Watch out: a single service failing to forward W3C TraceContext headers breaks the trace at that hop, making spans appear as disconnected orphans. Storing only average latency in metrics masks tail-latency problems — p99 can be 10× the mean and an SLO breach goes undetected.</p></div>,
     keyPoints: ["Metrics detect problems, traces locate them, logs explain them", "All three are needed — none fully replaces the others", "Correlate via a shared trace ID for fast incident response", "Never expose high-cardinality labels (e.g., user ID) as metric tags — it explodes time-series cardinality", "Sampling in tracing means rare error paths may never be captured — tune sampling carefully"],
   },
   "system-design:The Three Pillars": {
     oneLine: "Logs, metrics, and traces are the three pillars of observability — together they let you ask any question about a system's behaviour without deploying new code to answer it.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="All three pillars converge into a shared observability platform.">
-        <DiagBox x={20} y={20} w={110} h={46} label="Logs" sub="events" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={170} y={20} w={110} h={46} label="Metrics" sub="numbers" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={320} y={20} w={110} h={46} label="Traces" sub="spans" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={145} y={140} w={160} h={50} label="Observability" sub="platform" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagArrow x1={75} y1={66} x2={195} y2={138} color={h.base} />
-        <DiagArrow x1={225} y1={66} x2={225} y2={138} color={h.base} />
-        <DiagArrow x1={375} y1={66} x2={265} y2={138} color={h.base} />
-        <text x={230} y={210} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">unknown-unknowns solvable without redeploying</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["The Three Pillars"],
     analogy: { title: "Diagnosis by symptoms, vitals, and X-ray", text: "A doctor uses verbal symptoms (logs), numerical vitals (metrics), and imaging (traces) together — no single source gives the complete picture." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Observability is the ability to infer a system's internal state from its external outputs. The three pillars provide complementary views: metrics catch regressions early (alert on p99 spike), traces pinpoint where latency accumulates (span waterfall), and logs give the full narrative (error message, stack trace, request context). A correlation ID ties all three to a single user request.</p><p style={{margin:0}}>Watch out: all three pillars depend on instrumentation in the code — inconsistent trace context propagation across services creates orphan spans and gaps in coverage. Aggressive head-based trace sampling discards the rare slow or error requests that matter most for debugging.</p></div>,
     keyPoints: ["Metrics alert, traces locate, logs explain", "Shared trace/correlation ID links all three signals", "True observability: answer new questions without new code", "OpenTelemetry auto-instrumentation retrofits observability without rewriting business logic", "All three pillars depend on instrumentation — consistent propagation across every service is mandatory"],
   },
   "system-design:Alerting Pipelines": {
     oneLine: "An alerting pipeline continuously evaluates metrics against rules, deduplicates noise, groups related alerts, and routes them to the right on-call engineer — fast.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 180" caption="Metrics → Alert rule → Dedup & group → Route → On-call.">
-        {["Metrics","Alert Rules","Alert Manager","Router","On-Call"].map((lbl,i)=>(
-          <g key={i}>
-            <DiagBox x={10+i*88} y={70} w={80} h={40} label={lbl} fill={i===2?h.soft:i===4?"var(--card)":"var(--card)"} stroke={i===2?h.base:s} text={i===2?h.ink:"var(--ink)"} rx={i===4?20:10} />
-            {i<4&&<DiagArrow x1={90+i*88} y1={90} x2={98+i*88} y2={90} color={h.base} />}
-          </g>
-        ))}
-        <text x={230} y={145} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">AlertManager deduplicates · groups · silences</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Alerting Pipelines"],
     analogy: { title: "Like a newsroom editor", text: "Dozens of reporters file stories. The editor deduplicates duplicates, groups related stories into one page, and routes breaking news to the right section — one coherent paper, not chaos." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Prometheus AlertManager is the reference implementation: alerting rules fire when a PromQL expression crosses a threshold, alerts are grouped by labels, deduplicated, and silenced during maintenance windows. Routing rules send critical alerts via PagerDuty and warnings via Slack. <strong>Alert fatigue</strong> is the main failure mode — be ruthless about signal quality over volume.</p><p style={{margin:0}}>Watch out: a silenced alert forgotten after an incident leaves a production degradation undetected for days. A team renaming their PagerDuty service or Slack channel without updating routing rules causes critical pages to be silently dropped instead of delivered.</p></div>,
     keyPoints: ["Rules evaluate continuously against metric time-series", "Dedup and grouping prevent alert storms", "Route by severity: critical → pager, warning → chat", "Escalation policies page a backup if the first responder doesn't acknowledge", "Alert fatigue is the main failure mode — prioritise signal quality over alert volume"],
   },
   "system-design:OAuth 2.0 / JWT Flow": {
     oneLine: "OAuth 2.0 lets a user grant a third-party app access to their data without sharing their password — the authorization server issues tokens that the app uses to call APIs.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 200" caption="Authorization Code flow: user authenticates once, app gets short-lived access tokens.">
-        <DiagBox x={10} y={80} w={90} h={40} label="User / Browser" fill="var(--card)" stroke={s} text="var(--ink)" rx={10} />
-        <DiagBox x={175} y={30} w={110} h={40} label="Auth Server" sub="login + consent" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={175} y={130} w={110} h={40} label="Resource API" sub="protected data" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={350} y={80} w={100} h={40} label="Client App" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={100} y1={90} x2={173} y2={50} color={h.base} label="1. login" />
-        <DiagArrow x1={173} y1={50} x2={348} y2={90} color={h.base} label="2. code" />
-        <DiagArrow x1={348} y1={100} x2={287} y2={50} color={s} label="3. exchange" />
-        <DiagArrow x1={350} y1={110} x2={287} y2={150} color={h.base} label="4. access token" />
-        <text x={230} y={195} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">JWT encodes claims — stateless, self-contained</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["OAuth 2.0 / JWT Flow"],
     analogy: { title: "Like a valet key", text: "You hand the valet a key that opens the car door but not the glovebox or boot. The parking service gets exactly the access it needs — no more." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>OAuth 2.0 defines grant types. The most common for web apps is <strong>Authorization Code + PKCE</strong>: user logs in at the auth server, gets a code, the app exchanges it for an access token (and optionally a refresh token). <strong>JWTs</strong> encode claims (user ID, scopes, expiry) in a signed payload — APIs verify the signature without calling the auth server on every request. Refresh tokens allow long sessions without re-login.</p><p style={{margin:0}}>Watch out: JWTs remain valid until expiry and cannot be instantly revoked without a blocklist, negating the stateless benefit. If the server accepts multiple JWT algorithms, an attacker can swap the header to "none" or "HS256" with the public key as the secret — always pin the accepted algorithm explicitly.</p></div>,
     keyPoints: ["User authorises the app, never shares their password", "JWT: self-contained signed token, no auth-server roundtrip on each API call", "Short-lived access tokens + refresh tokens balance security and UX", "JWTs cannot be instantly revoked — use short expiry windows and a blocklist for sensitive operations", "JWT payload is encoded but not encrypted — never put secrets or sensitive PII in claims"],
   },
   "system-design:Rate Limiting Patterns": {
     oneLine: "Token bucket, leaky bucket, and sliding window are the three dominant algorithms for throttling requests — each makes a different trade-off between burstiness and smoothness.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Token bucket allows bursts; leaky bucket enforces constant rate; sliding window counts requests in a rolling window.">
-        <DiagBox x={10} y={50} w={130} h={90} label="Token Bucket" fill={h.soft} stroke={h.base} text={h.ink} />
-        <text x={75} y={105} textAnchor="middle" fontSize="9.5" fill={h.ink} fontFamily="var(--font-body,system-ui)">refills at rate r</text>
-        <text x={75} y={122} textAnchor="middle" fontSize="9.5" fill={h.ink} fontFamily="var(--font-body,system-ui)">allows bursts</text>
-        <DiagBox x={160} y={50} w={130} h={90} label="Leaky Bucket" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <text x={225} y={105} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">constant drain rate</text>
-        <text x={225} y={122} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">smooths bursts</text>
-        <DiagBox x={310} y={50} w={140} h={90} label="Sliding Window" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <text x={380} y={105} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">rolling time window</text>
-        <text x={380} y={122} textAnchor="middle" fontSize="9.5" fill="var(--ink-2)" fontFamily="var(--font-body,system-ui)">precise per client</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Rate Limiting Patterns"],
     analogy: { title: "Bucket with holes, bucket with tokens, stopwatch", text: "Water poured in drains at a fixed rate (leaky). Tokens drop in and you spend them in a burst if you saved up (token). A stopwatch resets every minute and counts your requests (sliding)." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Token bucket</strong>: tokens accumulate up to a max capacity; each request spends one. Allows controlled bursts. <strong>Leaky bucket</strong>: requests enter a queue that drains at a fixed rate; bursts are absorbed and smoothed. <strong>Sliding window</strong>: counts requests in the last N seconds, updated continuously — no edge spikes at window boundaries.</p><p style={{margin:0}}>Watch out: fixed window implementations allow a client to send the full quota at the end of one window and immediately again at the start of the next, effectively doubling throughput at every boundary. When the centralized Redis store becomes unavailable, many implementations fail open and stop enforcing limits entirely.</p></div>,
     keyPoints: ["Token bucket: best when clients need short bursts", "Leaky bucket: best for smooth downstream rate", "Sliding window: most precise, slightly more memory per client", "Fixed windows allow 2× burst at window boundaries — use sliding window to eliminate edge spikes", "Distributed rate limiting requires a shared low-latency store; a Redis outage can silently disable all limits"],
   },
   "system-design:Zero Trust Architecture": {
     oneLine: "Zero Trust means no request is trusted by default — every access is verified, least-privilege is enforced, and traffic is encrypted even inside the network perimeter.",
-    Diagram: ({ h }: { h: Hue }) => { const s = "var(--ink-3)"; return (
-      <DiagFrame vb="0 0 460 190" caption="Every hop is verified — internal requests are treated the same as external ones.">
-        <DiagBox x={10} y={77} w={100} h={46} label="User / Device" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagBox x={175} y={60} w={120} h={80} label="Policy Engine" sub="verify every request" fill={h.soft} stroke={h.base} text={h.ink} />
-        <DiagBox x={355} y={77} w={95} h={46} label="Resource" fill="var(--card)" stroke={s} text="var(--ink)" />
-        <DiagArrow x1={110} y1={100} x2={173} y2={100} color={h.base} label="authenticate" />
-        <DiagArrow x1={295} y1={100} x2={353} y2={100} color={h.base} label="allow" />
-        <text x={230} y={170} textAnchor="middle" fontSize="10" fill={s} fontFamily="var(--font-body,system-ui)">identity + device posture + context checked every time</text>
-      </DiagFrame>
-    ); },
+    Diagram: systemDesignDiagrams["Zero Trust Architecture"],
     analogy: { title: "Like showing ID at every door inside a building", text: "In a traditional office you badge in once and roam freely. Zero Trust puts a badge reader on every door — even to get from the kitchen to your own desk." },
     body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Zero Trust replaces the implicit trust of a VPN perimeter with continuous verification. Every request must present identity, every access is checked against policy (who, what device, what time, what data), and least-privilege is enforced so compromised credentials cause minimal blast radius. mTLS between services, short-lived certificates, and just-in-time provisioning are the implementation primitives.</p><p style={{margin:0}}>Watch out: short-lived workload certificates have fast TTLs — if automatic rotation fails silently, services begin rejecting each other's connections with cryptic TLS handshake errors. Over-permissive service accounts granted during initial rollout recreate the flat-network blast radius Zero Trust was meant to eliminate.</p></div>,
     keyPoints: ["Never trust, always verify — including internal traffic", "Least-privilege: grant minimum access needed", "Continuous verification beats a one-time perimeter login", "mTLS between services ensures both client and server identities are verified on every call", "Workload identity certificates must auto-rotate — expired certificates silently break service-to-service calls"],
@@ -2878,13 +2364,317 @@ const FEATURED: Record<string, FeaturedEntry> = {
     body: <div style={PROSE}><p style={{margin:0}}><strong>Separation of concerns</strong>: each agent step does one thing — easier to test, retry, and observe. <strong>Least privilege</strong>: give each tool call the minimum permissions needed — a writing tool shouldn't be able to delete. <strong>Fail fast</strong>: detect errors early, surface them explicitly, don't bury them in LLM output. <strong>Idempotency</strong>: any step must be safe to replay. These principles predate AI agents by decades and their importance only grows with autonomy.</p><p style={{margin:'10px 0 0'}}>Frameworks and models churn every few months — but design-for-failure, bounded queues, and observability carry forward intact across every rewrite and will outlast whatever tooling you use today.</p></div>,
     keyPoints: ["Least privilege: each tool gets minimum permissions — no broad access", "Fail fast: explicit errors surface sooner than buried LLM errors", "Idempotency is non-negotiable — production failures always cause replays", "Graceful degradation: design every operation to return a useful partial result on failure instead of crashing entirely", "Codify principles as platform invariants in shared libraries and review checklists — reliability must hold regardless of which framework you use"],
   },
+  "data-structures-algorithms:Asymptotic Analysis": {
+    oneLine: "Big-O measures how an algorithm's operation count grows as input size n heads toward infinity, deliberately throwing away constants and hardware so you can compare algorithms by their scaling, not their stopwatch.",
+    Diagram: dsaDiagrams["Asymptotic Analysis"],
+    analogy: { title: "Like a telescope, not a stopwatch", text: "It throws away everything you can see up close so the shape of the curve at infinity comes into focus. Two cars look identical at the curb, but one keeps accelerating forever and the other tops out — that long-run shape is all Big-O cares about." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Asymptotic analysis asks one question: as <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n</code> grows without bound, how fast does the number of basic operations grow? <strong>Big-O</strong> is an upper bound, <strong>Big-Ω</strong> a lower bound, and <strong>Big-Θ</strong> a tight bound that pins both sides — most claims people label O(n) are really <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n)</code> claims. We drop constants and lower-order terms because they vanish in the limit, so <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>3n² + 5n + 100</code> is just <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n²)</code>.</p><p style={{margin:0}}>The growth ladder diverges brutally: at n = 10⁶, an <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n log n)</code> sort does ~20 million steps while <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n²)</code> does a trillion. <strong>Amortized analysis</strong> handles operations that are occasionally expensive but cheap on average — a dynamic-array append is O(1) amortized even though one append in many triggers an O(n) copy. Watch out: average-case Θ(n log n) code can hide a worst case — sorted data into a naive-pivot quicksort, or adversarial keys into a hash table — that pushes it to Θ(n²) or worse, so randomize pivots or pick an algorithm with a hard worst-case bound.</p></div>,
+    keyPoints: ["Big-O drops constants and lower-order terms to expose only how cost scales with n", "Θ is a tight bound; citing a loose O() upper bound proves nothing useful", "The growth ladder runs Θ(1), Θ(log n), Θ(n), Θ(n log n), Θ(n²), Θ(2ⁿ) — and they diverge fast", "At n = 10⁶, Θ(n log n) does ~2×10⁷ steps but Θ(n²) does 10¹² — a 50,000x gap", "Asymptotics can lose at small n: a tiny-constant Θ(n²) can beat a big-constant Θ(n log n), so benchmark at real sizes"],
+  },
+  "data-structures-algorithms:The Machine Model": {
+    oneLine: "Big-O assumes every memory access costs the same, but real hardware makes some accesses 100,000x slower than others, so the algorithm with fewer operations can still lose to the one that touches memory in cache-friendly order.",
+    Diagram: dsaDiagrams["The Machine Model"],
+    analogy: { title: "Like a city, not a flat warehouse", text: "RAM is not a warehouse where every shelf is one step away — it is a city, and the cache line is the truckload. You pay for the trip once, so use everything that came on the truck before sending it back." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>The cost model behind Big-O — one operation, one unit of time — is a fiction. Real machines have a <strong>memory hierarchy</strong>: <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>registers</code> → <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>L1</code> → <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>L2</code> → <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>L3</code> → <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>RAM</code> → <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>SSD</code>, each tier roughly 10–100x slower than the one above. Memory also moves in fixed 64-byte <strong>cache lines</strong>, not one byte at a time, so touching one array element drags its neighbors into cache for free.</p><p style={{margin:0}}>This hands arrays two gifts — <strong>spatial locality</strong> (the next element is already loaded) and <strong>temporal locality</strong> (recently touched data stays cached). A contiguous array walk can beat an O(n) linked-list walk by 10x, because the list is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n</code> separate allocations and each hop is a random pointer chase that stalls hundreds of cycles. Asymptotics pick the algorithm class, but constants and cache behavior pick the winner within a class. Watch out: pointer-heavy structures like linked lists and trees are slow despite a great Big-O because every node is a random-address cache miss — prefer contiguous layouts, struct-of-arrays, or a pool allocator so nodes sit next to each other.</p></div>,
+    keyPoints: ["Big-O's flat cost model is a fiction: real access latency spans a million-fold range", "Memory moves in 64-byte cache lines, so touching one element prefetches its neighbors for free", "Spatial and temporal locality make contiguous arrays far faster than scattered nodes", "An array scan can beat an equal-O(n) linked-list walk by 10x purely from cache behavior", "Beware false sharing: padding hot per-thread data onto its own cache line stops lines from bouncing between cores"],
+  },
+  "data-structures-algorithms:Arrays & Dynamic Arrays": {
+    oneLine: "A static array is one contiguous block where element i lives at base + i × stride for true O(1) indexing, while a dynamic array fakes unlimited growth by allocating a bigger block and copying everything over whenever it fills.",
+    Diagram: dsaDiagrams["Arrays & Dynamic Arrays"],
+    analogy: { title: "Like a parking lot you rebuild twice as large", text: "When the lot fills, you bulldoze it and rebuild double the size across the street, then tow every car over. The move is expensive, but because the lot keeps doubling you do it ever more rarely, so the average cost per car parked stays flat." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A static <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>array</code> is a single contiguous run of bytes. Because every element has the same width (<strong>stride</strong>), the address of element <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>i</code> is just <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>base + i × stride</code> — one multiply and one add, which makes random access genuinely <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> and arrays the most cache-friendly structure that exists. The catch is that the size is fixed at allocation.</p><p style={{margin:0}}>A <strong>dynamic array</strong> — Python's list, C++'s vector, Java's ArrayList — solves this by tracking <strong>size</strong> and <strong>capacity</strong> over an over-allocated buffer. <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>append</code> writes into the next free slot in O(1) until full; then it allocates a buffer a constant factor larger (often 2x), copies all elements, and frees the old one. That copy is O(n), but geometric growth means the total work across n appends is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>1 + 2 + 4 + ... + n ≈ 2n</code>, so each append is O(1) amortized. Watch out: a loop doing front insert or delete like <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>lst.pop(0)</code> quietly becomes O(n²) since every later element shifts — use a <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>deque</code> for true O(1) ends.</p></div>,
+    keyPoints: ["Indexing is true O(1) via base + i × stride; arrays are the most cache-friendly structure", "Dynamic arrays track size and capacity over a deliberately over-allocated buffer", "Geometric (often 2x) growth makes append O(1) amortized — total copy work is about 2n", "Insert or delete anywhere but the end is O(n) because every later element must shift", "Amortized is not worst-case latency: a single resize spikes to O(n), so preallocate for real-time loops"],
+  },
+  "data-structures-algorithms:Linked Lists": {
+    oneLine: "A linked list trades the array's contiguous block for scattered nodes joined by pointers — you give up O(1) indexing and cache friendliness, and in return you get O(1) splicing anywhere, as long as you already hold a reference to the spot.",
+    Diagram: dsaDiagrams["Linked Lists"],
+    analogy: { title: "Like a paper scavenger hunt", text: "Each clue holds a value and the address of the next clue. Splicing in a new clue means rewriting a single address, but to reach the 50th clue you must physically visit all 49 before it — there is no shortcut to the middle." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Each node is an independent heap allocation holding a value plus a pointer to the next node (singly linked) or to both next and previous (doubly linked). Because nodes sit at unrelated addresses, there is no <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>base + i × stride</code> formula — to reach element <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>k</code> you start at the head and follow k pointers, so indexing and search are <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n)</code>. That same indirection makes the list <strong>cache-hostile</strong>: every hop is a random-address pointer chase that likely misses cache.</p><p style={{margin:0}}>The payoff is <strong>structural surgery</strong>. Given a reference to a node, inserting or removing next to it is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(1)</code> — you rewire a constant number of pointers, no shifting. The fine print: in a singly linked list, deleting a node you hold is still Θ(n) because you need the predecessor to repoint its <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>next</code>. A <strong>doubly linked</strong> list carries a <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>prev</code> pointer, making arbitrary splices truly O(1) — why LRU caches and OS scheduler queues use them. Watch out: indexing a list like an array with a <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>node_at(k)</code> call inside a loop turns an innocent traversal into O(n²); iterate with a moving cursor instead.</p></div>,
+    keyPoints: ["Nodes are scattered heap allocations joined by pointers, so there is no constant-time index formula", "Indexing and search are Θ(n) — you must walk from the head following pointers", "Splicing next to a node you already hold is Θ(1): just rewire a few pointers, no shifting", "Singly-linked delete of a held node is Θ(n) (you need the predecessor); a doubly linked prev fixes it", "Pointer chasing causes cache misses, so for scan-heavy work a list is routinely 5–10x slower than an array"],
+  },
+  "data-structures-algorithms:Stacks, Queues, Deques & Ring Buffers": {
+    oneLine: "Stacks, queues, and deques are not new storage but access disciplines layered on an array or list, and the ring buffer is the trick that makes a queue O(1) at both ends without ever shifting elements.",
+    Diagram: dsaDiagrams["Stacks, Queues, Deques & Ring Buffers"],
+    analogy: { title: "Like a plate dispenser and a ticket line", text: "A stack is the spring-loaded plate dispenser — you only ever take or add the top plate (LIFO). A queue is the ticket line — you join at the back and are served from the front (FIFO)." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A <strong>stack</strong> is last-in-first-out: you push and pop at one end only, exactly what the CPU uses for function calls and what any traversal uses to backtrack. A <strong>queue</strong> is first-in-first-out: enqueue at the back, dequeue from the front — the model for task pipelines and breadth-first search. A <strong>deque</strong> allows push and pop at both ends and generalizes both. All three are <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> per operation when implemented correctly.</p><p style={{margin:0}}>The naive trap is building a queue on a plain array and dequeuing from the front — that shifts every remaining element, making a drain <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n²)</code>. The fix is a <strong>ring buffer</strong>: a fixed-capacity array with two indices, <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>head</code> and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>tail</code>, that advance with <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>(i + 1) % capacity</code> so they wrap around. Nothing ever moves, giving genuine O(1) enqueue and dequeue with zero allocation — why ring buffers run audio pipelines, NIC I/O, and lock-free queues. Watch out: with only head and tail you cannot tell full from empty since both leave <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>head == tail</code> — track an explicit element count or deliberately leave one slot vacant.</p></div>,
+    keyPoints: ["Stacks (LIFO), queues (FIFO), and deques are access disciplines layered over an array or list", "All three are O(1) per operation when implemented correctly", "Dequeuing from the front of a plain array is O(n) per call and O(n²) to drain", "A ring buffer wraps head/tail with (i + 1) % capacity so nothing ever shifts — true O(1) at both ends", "Full vs empty both leave head == tail, so track a count or keep one slot vacant; decide an overflow policy on purpose"],
+  },
+  "data-structures-algorithms:Hash Functions & Hash Tables": {
+    oneLine: "A hash table is an array plus a function that turns any key into a slot number, so a lookup becomes one address computation instead of a scan — the whole game is keeping that function fast, well-spread, and the table empty enough that collisions stay rare.",
+    Diagram: dsaDiagrams["Hash Functions & Hash Tables"],
+    analogy: { title: "Like a librarian who never opens the book", text: "One glance at the title and they shout a shelf number — no searching the stacks. It is magic when every title maps to its own shelf, and useless the moment they start sending every book to shelf 7." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A <strong>hash table</strong> stores entries in an array of buckets and uses a <strong>hash function</strong> to decide where each key goes: <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>index = hash(key) % capacity</code>. A good hash is fast and spreads keys uniformly so distinct keys rarely land in the same bucket. Because the index is computed rather than searched, lookup, insert, and delete are <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> on <strong>average</strong> — an expected-time guarantee, not a worst-case one.</p><p style={{margin:0}}>What keeps the average true is the <strong>load factor</strong> <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>α = n / capacity</code>. Once α crosses ~0.75 the table resizes — allocating a bigger array and rehashing every key, an <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n)</code> cost that amortizes to <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> per op. Watch out: mutating a key in place after insertion changes its hash, so the entry sits in the wrong bucket — present in memory but unfindable, since lookups compute the new hash. Only ever hash on immutable fields.</p></div>,
+    keyPoints: ["index = hash(key) % capacity turns a key directly into a slot, no scan", "Lookup, insert, and delete are O(1) on average but O(n) worst case", "Load factor α = n/capacity triggers a grow-and-rehash around 0.7–0.75", "Equal keys must hash equally, and a key's hash must not change while stored", "Hash flooding (attacker keys that all collide) collapses every op to O(n) — use a keyed hash like SipHash"],
+  },
+  "data-structures-algorithms:Collision Resolution": {
+    oneLine: "Two distinct keys will eventually hash to the same bucket, and collision resolution is the policy for what happens next — either grow a little list hanging off that bucket (chaining), or keep everything inside the array and hunt for the next free slot (open addressing).",
+    Diagram: dsaDiagrams["Collision Resolution"],
+    analogy: { title: "Like a coat-check versus a parking garage", text: "Chaining is a coat-check where each numbered hook holds a whole rack of coats. Open addressing is a garage with no overflow lot — if your space is taken you roll to the next, and on leaving you must drop a 'keep looking' cone or the next driver misses the cars beyond." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}><strong>Separate chaining</strong> makes each bucket the head of a small container — usually a linked list — and appends colliding entries there. A lookup hashes to the bucket and walks its (hopefully tiny) list, giving <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(1 + α)</code> average time; deletion is a trivial unlink. It degrades gracefully past <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>α = 1</code> and forgives a mediocre hash, but pays for pointer chasing and a separate allocation per node.</p><p style={{margin:0}}><strong>Open addressing</strong> keeps every entry in the array and, on collision, probes a deterministic sequence of slots until it finds an empty one. Linear probing is cache-friendly but prone to <strong>primary clustering</strong>; double hashing spreads probes best. It demands a lower load factor (keep <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>α &lt; 0.7</code>) and cost explodes as <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>α → 1</code>. Watch out: deleting without a <strong>tombstone</strong> severs the probe chain, making every entry bumped past that slot unreachable even though it is still in the array.</p></div>,
+    keyPoints: ["Chaining hangs a list off each bucket; lookup is Θ(1 + α) and deletes are a simple unlink", "Open addressing stores everything in-array and probes for the next free slot", "Linear probing suffers primary clustering; double hashing spreads probes out", "Open-addressing deletes must leave a tombstone or the probe chain breaks and entries vanish", "Keep open-addressing load factor under ~0.7 — its cost explodes as α approaches 1"],
+  },
+  "data-structures-algorithms:Binary Trees & Traversals": {
+    oneLine: "A binary tree links nodes that each have up to two children, and almost everything about its performance comes down to one number — its height — while how you walk it decides the order in which you see the data.",
+    Diagram: dsaDiagrams["Binary Trees & Traversals"],
+    analogy: { title: "Like an org chart and party etiquette", text: "A binary tree is an org chart, and a traversal is the etiquette for whom you greet first at the party. You can greet-then-descend, do-the-left-wing-then-greet-then-the-right, or shake every subordinate's hand before the boss's — and level-order just works the building floor by floor." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A binary tree is a set of nodes, each holding a value and up to two child pointers, <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>left</code> and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>right</code>, descending from a single <strong>root</strong> down to <strong>leaf</strong> nodes. The decisive property is <strong>height</strong> — the longest root-to-leaf path — because reaching the bottom costs in proportion to it: a balanced tree has height <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(log n)</code>, but a degenerate chain has height <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n)</code>.</p><p style={{margin:0}}>Visiting every node is a <strong>traversal</strong>. The depth-first orders differ only in when a node is processed: <strong>preorder</strong> (node-left-right, good for copying), <strong>inorder</strong> (left-node-right, which emits a search tree's keys in sorted order), and <strong>postorder</strong> (left-right-node, good for deleting bottom-up). Breadth-first sweeps rank by rank with a queue. Watch out: a skewed tree of height <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n</code> recursed naively overflows the call stack — traverse iteratively with an explicit stack, or keep the tree balanced.</p></div>,
+    keyPoints: ["Height — the longest root-to-leaf path — drives cost; balanced is Θ(log n), degenerate is Θ(n)", "All four traversals visit every node in Θ(n) time using Θ(h) or Θ(w) space", "Inorder of a BST emits keys in sorted order; postorder safely frees children before parents", "Recursive DFS uses call-stack space proportional to height and can overflow on deep trees", "Tree ops are only O(log n) when the height is logarithmic — an unbalanced tree degrades to O(n)"],
+  },
+  "data-structures-algorithms:Binary Search Trees": {
+    oneLine: "A binary search tree keeps one rule at every node — everything on the left is smaller, everything on the right is larger — which turns search into a halving descent, but nothing forces the tree to stay bushy, so the wrong insertion order quietly collapses it into a slow chain.",
+    Diagram: dsaDiagrams["Binary Search Trees"],
+    analogy: { title: "Like the number line folded into a tree", text: "At each node you ask 'left or right?' and throw away half of what remains — but only if someone folded it evenly. Feed it sorted data and it lays the number line out flat, with no creases to shortcut, so you are back to walking every point." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A BST enforces a single invariant recursively: for every node, all keys in its <strong>left subtree</strong> are less than its key and all keys in its <strong>right subtree</strong> are greater. That ordering lets search behave like binary search — compare the target, step left if smaller or right if larger, and discard the other subtree each time, reaching any key in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(h)</code> comparisons. An <strong>inorder</strong> traversal reads the keys back sorted for free.</p><p style={{margin:0}}><strong>Deletion</strong> has three cases: a leaf is removed, a one-child node is bypassed, and a two-child node is replaced by its <strong>inorder successor</strong> (the smallest key in its right subtree). The fatal weakness is that shape is entirely a function of insertion order, and a plain BST never self-corrects. Watch out: inserting already-sorted or monotonically increasing keys — timestamps, auto-increment IDs — builds a one-sided chain of height <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n</code>, degrading every operation to linear time.</p></div>,
+    keyPoints: ["The invariant — left subtree smaller, right subtree larger — turns search into an O(h) halving descent", "Inorder traversal reads BST keys back in sorted order for free", "Deleting a two-child node replaces it with its inorder successor, then deletes that successor", "Tree shape depends entirely on insertion order; random inserts average Θ(log n) height", "Sorted or monotonic insertion builds a height-n chain, making every operation O(n)"],
+  },
+  "data-structures-algorithms:Self-Balancing Trees": {
+    oneLine: "A self-balancing tree keeps a BST from degenerating by enforcing a height bound after every update, repairing violations with rotations — local, constant-time pointer reshuffles that lower the height while preserving the left-smaller / right-larger order.",
+    Diagram: dsaDiagrams["Self-Balancing Trees"],
+    analogy: { title: "Like a librarian who reshelves as they go", text: "Every time a book makes one section too tall, they make a quick three-shelf swap that keeps everything in alphabetical order but lowers the tallest stack. The aisle never gets so deep that you have to walk forever to reach the back." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>The fix for the BST's fragility is structural: detect when an insert or delete has made the tree too lopsided and immediately rebalance with <strong>rotations</strong>. A rotation re-parents three nodes and re-homes a single subtree in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> — a right rotation lifts a node's left child into its place, pushes the node down to the right, and moves that child's right subtree across, all while keeping every key in sorted position. Because the cost is constant and it provably reduces height, a few rotations after each update keep the whole tree shallow.</p><p style={{margin:0}}>An <strong>AVL tree</strong> keeps subtree heights within one (a balance factor in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>&#123;−1, 0, +1&#125;</code>), guaranteeing height under about <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>1.44 log n</code> — tightest balance, fastest reads. A <strong>red-black tree</strong> uses looser color rules for a <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>2 log n</code> bound with fewer rotations, which is why it backs std::map, Java's TreeMap, and the Linux kernel. Watch out: rebalancing only the touched node misses violations that surface several levels above — retrace the path to the root and fix up the whole way.</p></div>,
+    keyPoints: ["A rotation re-parents three nodes in O(1), lowering height while preserving sorted order", "AVL enforces |h(L) − h(R)| ≤ 1, bounding height at ~1.44 log n — tightest balance, fastest reads", "Red-black trees use color rules for a 2 log n bound with fewer rotations — best for writes", "Every search, insert, and delete in both stays a guaranteed Θ(log n)", "Rebalancing must retrace to the root, since an imbalance can surface several levels above the touched node"],
+  },
+  "data-structures-algorithms:B-Trees & B+ Trees": {
+    oneLine: "A B-tree is a search tree redesigned around the brutal cost of a disk seek: each node holds hundreds of keys so it fills exactly one page, the fanout is enormous, and the height shrinks to three or four levels even for billions of keys — so a lookup costs a handful of I/Os instead of thirty.",
+    Diagram: dsaDiagrams["B-Trees & B+ Trees"],
+    analogy: { title: "Like a library card catalog", text: "A binary tree sends you back and forth to the stacks thirty times, asking one yes/no question per trip. A B+ tree is the catalog drawer that narrows you among hundreds of shelves in a single glance, so even a billion books are only four drawers deep." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Binary trees assume every node access is cheap, which is false when nodes live on disk — there each pointer hop is a multi-millisecond seek, and a balanced binary tree over a billion keys is roughly 30 levels deep. A <strong>B-tree</strong> fixes this by packing many keys into each node: an order-<code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>m</code> node holds up to <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>m−1</code> keys and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>m</code> child pointers, sized so one node equals one disk page. Search finds the key interval within a node, then descends, so the number of disk reads is just the height, <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(log_m n)</code> — only three or four levels for that same billion keys, and all leaves sit at the same depth.</p><p style={{margin:0}}>Balance is kept by <strong>splitting and merging</strong> rather than rotating: an overflowing leaf splits and pushes its median key up, and only a cascading root split grows the tree taller. The <strong>B+ tree</strong> variant stores only router keys in internal nodes while all values live in leaves chained as a sorted linked list, turning a range query into one descent plus a sideways walk — which is why InnoDB, PostgreSQL, SQLite, NTFS, and ext4 all build on it. Watch out: keying a B+ index on a random value like a UUID scatters inserts across the whole tree, causing constant leaf splits and heavy write amplification, so prefer monotonic keys for insert-heavy indexes.</p></div>,
+    keyPoints: ["Each node fills one disk page, giving a fanout of hundreds and a height of only 3–4 levels for a billion keys", "Search, insert, and delete are all Θ(log n) comparisons but only Θ(log_m n) disk reads", "Balance is maintained by splitting/merging nodes, not rotations; the tree grows only when the root splits", "B+ trees keep values in leaves chained in sorted order, so range scans are one descent plus a sequential walk", "Random keys like UUIDs shred leaf pages with splits and write amplification — prefer monotonic keys"],
+  },
+  "data-structures-algorithms:Heaps & Priority Queues": {
+    oneLine: "A binary heap is a complete tree where every parent out-ranks its children, but because it is complete it needs no pointers at all — it lives in a plain array, with a child at 2i+1 / 2i+2 and a parent at (i−1)//2, giving O(1) access to the best element and O(log n) to insert or remove it.",
+    Diagram: dsaDiagrams["Heaps & Priority Queues"],
+    analogy: { title: "Like a tournament bracket run upward", text: "The smaller value wins each match and rises, so the champion at the top is the global minimum, found instantly. But the bracket only records who beat whom along each path, so naming the runner-up still takes a playoff among the champion's direct challengers." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A <strong>binary heap</strong> maintains one weak ordering: in a min-heap every node is less than or equal to both its children. That is far weaker than a BST — siblings are unordered — but it guarantees the single thing a priority queue needs: the minimum is always at the root, readable in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code>. The structural trick is that a heap is always a <strong>complete</strong> tree, so it maps perfectly onto a contiguous array: the node at index <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>i</code> has its parent at <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>(i−1)//2</code> and its children at <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>2i+1</code> and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>2i+2</code> — no pointers, no per-node allocation, great cache locality.</p><p style={{margin:0}}>Two operations keep the property intact, each walking one root-to-leaf path. <strong>Insert</strong> appends the value and sifts it up; <strong>extract-min</strong> removes the root, moves the last element up, and sifts it down — both <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(log n)</code>. Building a heap from an arbitrary array is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n)</code>, not <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n log n)</code>, if you sift down from the last internal node backward. Heaps power Dijkstra, A*, schedulers, heapsort, and streaming top-k. Watch out: a heap is ordered only along paths, so <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>contains(x)</code> and arbitrary delete are <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n)</code> — keep a side map from value to index if you need decrease-key, or use a balanced BST for ordered search.</p></div>,
+    keyPoints: ["A complete tree maps onto a flat array: parent (i−1)//2, children 2i+1 and 2i+2 — no pointers needed", "Peek min or max is Θ(1); insert (sift-up) and extract-min (sift-down) are each Θ(log n)", "Bottom-up heapify builds a heap in Θ(n), far cheaper than n repeated O(n log n) inserts", "Searching for an arbitrary value is O(n) because siblings are unordered — a heap is not a searchable set", "Lazy priority queues must skip stale entries or use a position map, or popped outdated state corrupts results"],
+  },
+  "data-structures-algorithms:Tries & Radix Trees": {
+    oneLine: "A trie stores strings by laying them out character-by-character down shared paths, so a lookup costs only the length of the key — O(k) — no matter how many millions of keys are stored, and prefix queries fall out for free; a radix tree then crushes the wasted single-child chains to make it memory-cheap.",
+    Diagram: dsaDiagrams["Tries & Radix Trees"],
+    analogy: { title: "Like a choose-your-own-adventure book", text: "Every page is a single letter, and the words you know are exactly the marked endings you can reach by spelling. Adding 'card' after 'car' costs just the one extra page 'd', and a radix tree is that same book after gluing every run of single-choice pages into one." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A <strong>trie</strong> is built from the keys' characters rather than from comparisons or hashes: each edge carries one character, every path from the root spells a prefix, and a flag marks where a complete word ends. To look up or insert a key you walk its characters from the root, so the cost is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(k)</code> in the key's length and completely <strong>independent of n</strong>, the number of keys stored — no hashing, no collisions, a true worst-case bound. Prefix operations fall out naturally: \"all words starting with car\" is just descend to the <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>car</code> node and enumerate its subtree, which is why tries power autocomplete and spell-checkers.</p><p style={{margin:0}}>The price is space: a naive trie keeps a child slot per possible character at every node, wasteful when branches are sparse, and long single-child chains are pure overhead. A <strong>radix tree</strong> (compressed or Patricia trie) merges any chain of single-child nodes into one edge labeled with the whole substring, collapsing the tree to its branching points while preserving every lookup — which is why IP routing tables, Linux's LPC-trie, and Redis's keyspace use it. Watch out: if you only need exact membership with no prefix or ordered queries, a trie pays <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(k)</code> and heavy memory for what a hash set does in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> — reach for a trie only when its prefix and ordering powers are the point.</p></div>,
+    keyPoints: ["Lookup, insert, and delete cost Θ(k) in the key length, independent of how many keys are stored", "Prefix enumeration is natural: descend to the prefix node and walk its subtree — ideal for autocomplete", "There are no collisions and no comparisons against other keys, giving a true worst-case bound", "Per-node alphabet arrays waste memory on sparse branches; use hash maps or compress into a radix tree", "Radix/Patricia compression merges single-child chains into one labeled edge, keeping only real decision points"],
+  },
+  "data-structures-algorithms:Segment Trees & Fenwick Trees": {
+    oneLine: "When you must repeatedly ask what is the sum/min/max over array indices l..r while the array keeps changing, both a naive recompute and a precomputed prefix array fail — a segment tree (or Fenwick tree) precomputes aggregates over a tree of ranges so every query and every update is O(log n).",
+    Diagram: dsaDiagrams["Segment Trees & Fenwick Trees"],
+    analogy: { title: "Like a stack of nested progress bars", text: "Each bar already knows the total for its slice, so any range you name is assembled from a few pre-summed pieces instead of re-adding every element. A Fenwick tree is that same idea folded into the binary digits of the indices, so the hops are just bit-flips." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>The problem is the tension between queries and updates: a prefix-sum array answers a range sum in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> but any update forces an <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n)</code> rebuild, while rescanning per query is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n)</code> the other way. A <strong>segment tree</strong> resolves both: each node owns a contiguous slice and stores the aggregate (sum, min, max, gcd — anything associative) of its children. A range query stitches together only the <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(log n)</code> nodes that tile the interval; a point update re-aggregates the <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(log n)</code> ancestors above one leaf. It costs about <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>4n</code> storage but is maximally flexible.</p><p style={{margin:0}}>A <strong>Fenwick tree</strong> (binary indexed tree) is a leaner specialist for invertible aggregates like sums. It is one <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n+1</code> array where position <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>i</code> covers a block of <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>i &amp; (−i)</code> elements — its lowest set bit. A prefix sum strips the lowest set bit each hop, and a range sum is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>prefix(r) − prefix(l−1)</code>, which is exactly why it needs an invertible operation. Watch out: that subtraction only works for invertible operations, so a plain Fenwick tree cannot do range-min or range-max — use a segment tree for non-invertible aggregates, or a sparse table for static range-min.</p></div>,
+    keyPoints: ["Both make range query and point update O(log n), resolving the prefix-array vs. rescan tension", "A segment tree handles any associative aggregate (sum, min, max, gcd) and supports range updates via lazy propagation", "A segment tree costs about 4n storage; a Fenwick tree is a single n+1 array, tiny and cache-friendly", "A Fenwick tree only works for invertible operations like sum because it isolates ranges by subtraction", "A Fenwick tree must be 1-indexed (index 0 hangs the loop), and a segment tree must allocate 4n to avoid out-of-bounds reads"],
+  },
+  "data-structures-algorithms:Comparison Sorts": {
+    oneLine: "Any sort that orders elements purely by comparing pairs is provably stuck at Ω(n log n) — there are n! possible orderings and each comparison reveals only one bit — so the three great comparison sorts differ not in beating that wall but in how they split the work and what they trade away.",
+    Diagram: dsaDiagrams["Comparison Sorts"],
+    analogy: { title: "Like three movers packing a truck", text: "One is fast but throws boxes anywhere and sometimes jams the doorway, one always packs neatly in order but needs a second truck for scratch space, and one packs steadily in place but keeps running across the warehouse. Same total work, different costs paid." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>There is a hard floor under comparison sorting. Picture the algorithm as a decision tree where each node is a comparison and each leaf is one of the <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n!</code> possible orderings; to distinguish all of them the tree must have at least <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n!</code> leaves, so its height — the worst-case comparisons — is at least <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>log₂(n!) ≈ n log n</code>. <strong>Quicksort</strong> picks a pivot and partitions into smaller and larger halves, then recurses; it is in-place, cache-friendly, and fastest in practice with tiny constants, but a bad pivot degrades it to <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n²)</code> and it is not stable.</p><p style={{margin:0}}><strong>Mergesort</strong> splits in half, sorts each, then merges in linear time — always <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n log n)</code> and stable — but the merge needs <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n)</code> scratch space, so it shines for linked lists and external sorting. <strong>Heapsort</strong> builds a max-heap and repeatedly extracts the max, giving a guaranteed <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n log n)</code> in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(1)</code> space, but its scattered sift operations make it cache-hostile and slower in wall-clock terms. Watch out: choosing the first or last element as the pivot on already-sorted data produces maximally lopsided partitions and collapses quicksort to <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n²)</code> — randomize the pivot or use median-of-three.</p></div>,
+    keyPoints: ["Any comparison sort needs Ω(n log n) comparisons because distinguishing n! orderings requires that decision-tree height", "Quicksort is in-place and fastest on average (Θ(n log n)) but degrades to Θ(n²) on bad pivots and is unstable", "Mergesort is always Θ(n log n) and stable but needs Θ(n) scratch space — ideal for linked lists and external sorts", "Heapsort guarantees Θ(n log n) in Θ(1) space but its poor cache locality makes it slower in practice", "Recurse into the smaller partition and loop on the larger one to cap quicksort's stack depth at O(log n)"],
+  },
+  "data-structures-algorithms:Linear-Time Sorts": {
+    oneLine: "These sorts run in O(n) because they read keys directly and drop each one into its address instead of comparing elements, which only works when the keys are structured.",
+    Diagram: dsaDiagrams["Linear-Time Sorts"],
+    analogy: { title: "Like sorting mail by ZIP code", text: "Instead of holding two letters up against each other to decide which goes first, you read each letter's ZIP code and drop it straight into the labeled pigeonhole. It is only fast because every item already has a small, known address." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>The <strong>comparison wall</strong> of <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Ω(n log n)</code> only binds algorithms that learn order by comparing. <strong>Counting sort</strong> handles integer keys in a bounded range by tallying how many times each value occurs, turning those counts into prefix sums, and placing each element directly — <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n + k)</code> time, stable, no comparison ever made. Its constraint is that the range <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>k</code> must stay comparable to <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n</code>.</p><p style={{margin:0}}><strong>Radix sort</strong> lifts that limit by decomposing wide keys into fixed-width digits and running a stable pass — usually counting sort — once per digit from least significant to most. <strong>Bucket sort</strong> takes a third route for uniformly distributed keys: scatter elements into about <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n</code> buckets, sort each small bucket, and concatenate. Watch out: bucket sort is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n)</code> only when keys spread evenly — a clustered distribution dumps most elements into one bucket and degrades to <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n²)</code>.</p></div>,
+    keyPoints: ["Counting sort is Θ(n + k), stable, and never compares — but needs k = O(n).", "Radix LSD runs one stable pass per digit; each pass MUST be stable or earlier orderings are scrambled.", "32-bit integers in base 256 sort in just four radix passes, effectively Θ(n).", "Bucket sort averages Θ(n) on uniform data but hits Θ(n²) worst case on skewed data.", "All three trade comparisons for direct indexing, paying with assumptions about the keys."],
+  },
+  "data-structures-algorithms:Production Sorts": {
+    oneLine: "The sorts that ship in real standard libraries are hybrids that detect the shape of the data and switch tools mid-flight — Timsort exploits pre-sorted runs while Introsort runs fast quicksort but bails to heapsort the instant it smells an O(n²) spiral.",
+    Diagram: dsaDiagrams["Production Sorts"],
+    analogy: { title: "Like a seasoned foreman", text: "A good foreman sizes up the material before picking a tool: if the lumber is already half-stacked in neat piles, just slide them together. Charge in with the fast tool, but keep one hand on the safety lever to swap to the slower-but-unbreakable tool the moment the fast one binds." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Library sorts optimize <strong>real inputs</strong>, which are messy and often partly ordered. <strong>Timsort</strong> — behind Python, Java, and V8 — is a stable, adaptive mergesort: it scans for natural runs, extends short ones with binary insertion sort up to a <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>minrun</code> threshold, then merges with a stack that enforces balance invariants. Its galloping mode leaps over long stretches of a dominating run, giving <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n)</code> on nearly-sorted data and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n log n)</code> worst case.</p><p style={{margin:0}}><strong>Introsort</strong> — behind C++'s <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>std::sort</code> — begins as quicksort but introspects: if recursion depth exceeds <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>2·log₂ n</code> it switches to heapsort, and below ~16 elements it switches to insertion sort. Watch out: Python and Java object sorts are stable, but C++'s std::sort is Introsort and is NOT stable — code that quietly relied on equal keys keeping their order will silently misorder, so use std::stable_sort.</p></div>,
+    keyPoints: ["Timsort is stable and adaptive: Θ(n) on runs, Θ(n log n) worst case.", "Introsort is quicksort's speed plus heapsort's guaranteed Θ(n log n) bound — but unstable.", "Guarantees come from fallbacks; speed comes from adaptivity.", "Plain quicksort's Θ(n²) worst case is exactly why the heapsort fallback exists.", "Both invoke the comparator Θ(n log n) times, so precompute a cheap sort key to keep each compare O(1)."],
+  },
+  "data-structures-algorithms:Graph Representations": {
+    oneLine: "How you store a graph's edges decides which questions are cheap: an adjacency matrix answers are these two connected? in O(1) at O(V²) memory, while an adjacency list costs only O(V + E) and iterates neighbors fast, which is why it wins on the sparse graphs that dominate the real world.",
+    Diagram: dsaDiagrams["Graph Representations"],
+    analogy: { title: "Like a grid versus contact cards", text: "An adjacency matrix is a giant attendance grid that tells you instantly whether any two people are linked, but it needs a row and column for every possible pair even though almost none are connected. An adjacency list is a stack of contact cards storing only the real relationships, staying tiny for sparse webs — but to check one link you must flip through a card." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>An <strong>adjacency matrix</strong> is a <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>V × V</code> grid where cell <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>[u][v]</code> holds the edge weight; it gives <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(1)</code> edge lookup but occupies <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(V²)</code> space no matter how few edges exist, making it ideal for <strong>dense</strong> graphs. An <strong>adjacency list</strong> stores per vertex only its actual neighbors in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(V + E)</code> space — the default for almost every real graph, which is overwhelmingly sparse.</p><p style={{margin:0}}>A third form, the <strong>edge list</strong>, stores all edges as <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>(u, v, weight)</code> triples and is the natural input for Kruskal's MST or Bellman-Ford. The decision reduces to density and access pattern. Watch out: in an undirected graph, adding only <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>u → v</code> silently makes the graph directed so a traversal misses the edge from v's side — always insert both directions and keep the matrix symmetric.</p></div>,
+    keyPoints: ["Matrix: Θ(V²) space, O(1) edge test, O(V) to enumerate one vertex's neighbors.", "List: Θ(V + E) space, O(deg) edge test, O(deg) neighbor iteration.", "Edge list stores (u, v, w) triples in Θ(E) — ideal for edge-sweeping algorithms.", "Pick matrix for dense graphs or constant edge probes; list for sparse graphs or neighbor iteration.", "Most real graphs are sparse, so the adjacency list is the default; a matrix on a large sparse graph is ruinous."],
+  },
+  "data-structures-algorithms:Graph Traversal": {
+    oneLine: "BFS and DFS visit every reachable vertex in O(V + E) and differ in exactly one thing — a FIFO queue versus a stack — yet that single swap turns layer-by-layer flooding into dive-and-backtrack.",
+    Diagram: dsaDiagrams["Graph Traversal"],
+    analogy: { title: "Like water versus a lone explorer", text: "BFS floods a maze level by level like rising water, so the instant it touches the exit it has the shortest route. DFS is a lone explorer following each corridor to its dead end and backing up — which is how it hands you the order to do dependent tasks, or notices a loop in the halls." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Both traversals need a <strong>visited set</strong>, because without one a cycle sends them into an infinite loop. <strong>BFS</strong> uses a <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>FIFO</code> queue: it dequeues a vertex, enqueues all unvisited neighbors, and expands outward in concentric layers — distance 0, then 1, then 2. That layered order is exactly why BFS finds the <strong>shortest unweighted path</strong>: the first time it reaches a vertex is necessarily via a minimum-hop route, running in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(V + E)</code>.</p><p style={{margin:0}}><strong>DFS</strong> uses a <strong>stack</strong> — explicit or via recursion — diving as deep as possible before backtracking. Its finish order yields a <strong>topological sort</strong> of a DAG, a back-edge reveals a cycle, and the recursion structure underlies bridges, articulation points, and SCCs. Watch out: DFS finds <em>a</em> path, not the shortest — it commits to one deep route and may reach the target the long way around, so use BFS for fewest-edge shortest paths.</p></div>,
+    keyPoints: ["Both run in Θ(V + E); the only difference is FIFO queue (BFS) versus stack (DFS).", "BFS expands in layers, so first arrival at a vertex is the shortest unweighted path.", "DFS finish order gives topological sort; back-edges reveal cycles.", "Always need a visited set — and for BFS, mark vertices on enqueue, not dequeue.", "Recursive DFS can overflow the call stack; use an explicit stack for deep graphs."],
+  },
+  "data-structures-algorithms:Shortest Paths": {
+    oneLine: "Every shortest-path algorithm is built on one move — edge relaxation, dist[v] = min(dist[v], dist[u] + w) — and they differ only in the order they relax: Dijkstra greedily settles the nearest vertex, Bellman-Ford relaxes everything V−1 times, and A* relaxes toward the goal using a heuristic.",
+    Diagram: dsaDiagrams["Shortest Paths"],
+    analogy: { title: "Like an accountant, a brute, and a compass", text: "Dijkstra is a cautious accountant who finalizes the cheapest still-open vertex first, trusting nothing cheaper can arrive later — a trust that shatters the instant an edge can subtract cost. Bellman-Ford is the brute who re-checks every road enough times that no saving can hide, while A* is Dijkstra holding a compass, relaxing toward the goal first." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Once edges carry weights, fewest hops is not least cost, so we <strong>relax edges</strong> instead. <strong>Dijkstra's algorithm</strong> repeatedly extracts the unsettled vertex with the smallest tentative distance from a min-heap, relaxes its outgoing edges, and finalizes it. Its correctness rests on a <strong>non-negativity</strong> assumption: once a vertex is settled with the minimum tentative distance, nothing later can beat it. With a binary heap it runs in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ((V + E) log V)</code>.</p><p style={{margin:0}}>When edges can be negative, <strong>Bellman-Ford</strong> relaxes <em>all</em> <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>E</code> edges <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>V−1</code> times in <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(V · E)</code>; a further improvement on a V-th pass reveals a negative cycle. <strong>A*</strong> is Dijkstra with direction, ordering the frontier by <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>f(n) = g(n) + h(n)</code>. Watch out: a single negative edge can offer a cheaper route to a vertex Dijkstra already finalized, but the greedy lock means it never reconsiders — so use Bellman-Ford for negative weights.</p></div>,
+    keyPoints: ["Edge relaxation, dist[v] = min(dist[v], dist[u] + w), is the shared heartbeat of all three.", "Dijkstra is Θ((V + E) log V) with a binary heap but only correct for non-negative weights.", "Bellman-Ford is Θ(V · E), handles negatives, and detects negative cycles on a V-th pass.", "A* with an admissible h finds the optimal path while expanding fewer nodes; h = 0 is exactly Dijkstra.", "An inadmissible heuristic that overestimates forfeits A*'s optimality."],
+  },
+  "data-structures-algorithms:Minimum Spanning Trees": {
+    oneLine: "A minimum spanning tree connects every vertex of a weighted undirected graph using exactly V−1 edges of least total weight, found greedily by Kruskal (cheapest edge anywhere with no cycle) or Prim (grow one tree outward by its cheapest leaving edge).",
+    Diagram: dsaDiagrams["Minimum Spanning Trees"],
+    analogy: { title: "Like the cheapest set of roads with no loops", text: "Imagine paving roads so every town is reachable while spending the least cable. Kruskal is a thrifty contractor laying the cheapest road anywhere that doesn't merely close a loop, while Prim is a capital city growing outward one cheapest road at a time." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>An <strong>MST</strong> is the cheapest subgraph that keeps all <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>V</code> vertices connected: a tree with exactly <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>V−1</code> edges minimizing total weight. Both algorithms are greedy and provably correct by the <strong>cut property</strong>. <strong>Kruskal</strong> sorts all edges ascending, then adds each edge only if its endpoints are in different components, costing <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(E log E)</code> dominated by the sort — a natural fit for sparse graphs.</p><p style={{margin:0}}><strong>Prim</strong> starts from one vertex and repeatedly adds the minimum-weight edge connecting the growing tree to an outside vertex via a min-heap, giving <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(E log V)</code>, or <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(V²)</code> with an array which wins on dense graphs. Watch out: an MST minimizes total weight, which is not the same as minimizing the distance from a source to each vertex — that is a shortest-path tree, so use Dijkstra for that and never substitute one for the other.</p></div>,
+    keyPoints: ["An MST is a tree with exactly V−1 edges of least total weight on an undirected graph", "Both Kruskal and Prim are greedy, justified by the cut property", "Kruskal Θ(E log E) sorts edges and adds those that don't close a cycle; best for sparse graphs", "Prim Θ(E log V) with a heap, or Θ(V²) with an array, which wins on dense graphs", "Back Kruskal's cycle test with Union-Find; an MST is not a shortest-path tree"],
+  },
+  "data-structures-algorithms:Union-Find": {
+    oneLine: "A disjoint-set structure tracks a partition of elements into groups and answers same-group? plus merge two groups almost for free, using parent-pointer up-trees that union by rank and path compression flatten to an amortized cost of α(n), the inverse Ackermann function, below 5 for any real input.",
+    Diagram: dsaDiagrams["Union-Find"],
+    analogy: { title: "Like teammates who each point to their captain", text: "Everyone knows just one other person to point to, and following that chain ends at the team captain, so two people share a team if their chains reach the same captain. Path compression has everyone you pass re-pin their badge straight to the captain, so the next lookup is instant." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Union-Find (a <strong>disjoint-set union</strong>, or DSU) maintains disjoint sets and supports <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>find(x)</code>, returning a representative, and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>union(x, y)</code>, merging two sets. It is a forest of <strong>up-trees</strong>: each element stores one parent pointer, the root is the representative, and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>find</code> walks to it. Done naively a chain of unions makes <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>find</code> cost <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(n)</code>, so <strong>union by rank</strong> always hangs the shorter tree under the taller, keeping height logarithmic.</p><p style={{margin:0}}><strong>Path compression</strong> re-points every node on a find path directly at the root, flattening the tree. Together they give an amortized <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(α(n))</code> per operation — the inverse Ackermann function, below 5 for any conceivable n. It powers Kruskal's cycle test, connected-components, and cycle detection. Watch out: applying neither optimization lets a chain build a linear tree and turns Kruskal quadratic — always apply union by rank and path compression together, since each alone only reaches <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(log n)</code>.</p></div>,
+    keyPoints: ["DSU supports find (representative of a set) and union (merge two sets) over a parent-pointer forest", "Union by rank hangs the shorter tree under the taller, bounding height to O(log n)", "Path compression re-points nodes straight to the root, flattening trees on each find", "Both together give O(α(n)) amortized, effectively constant for any real input", "DSU cannot delete or undo a union; use link-cut trees or an offline rollback variant"],
+  },
+  "data-structures-algorithms:Divide & Conquer and the Master Theorem": {
+    oneLine: "Divide-and-conquer splits a problem into smaller copies, solves them recursively, and combines the results, and the cost T(n) = a·T(n/b) + f(n) is solved by the Master Theorem asking one question: does the work pile up at the root, spread evenly across levels, or sink into the leaves?",
+    Diagram: dsaDiagrams["Divide & Conquer and the Master Theorem"],
+    analogy: { title: "Like delegating work down an org chart", text: "Split the job, hand each piece to a clone of yourself, then stitch the answers back together. The only question that matters is which layer is busiest — the boss combining at the top, every layer equally, or the countless tiny workers at the bottom — because the heaviest layer sets the total bill." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>The pattern has three steps: <strong>divide</strong> the input into <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>a</code> subproblems of size <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n/b</code>, <strong>conquer</strong> them by recursing, and <strong>combine</strong> with non-recursive work <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>f(n)</code>. That gives the recurrence <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>T(n) = a·T(n/b) + f(n)</code>. The <strong>Master Theorem</strong> compares <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>f(n)</code> against the watershed <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n^(log_b a)</code>: leaves dominate (Case 1), work is balanced across levels (Case 2), or the top combine dominates (Case 3).</p><p style={{margin:0}}>Mergesort is the textbook Case 2 — <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>2T(n/2) + Θ(n)</code> gives <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n log n)</code> — while binary search is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(log n)</code> and Karatsuba reaches <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>n^1.585</code>. Watch out: the theorem only covers the constant-a, equal-size-split form, so recurrences that subtract (<code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>T(n−1) + n</code>), split unevenly, or sit in the gap between cases need the recursion-tree method or Akra-Bazzi instead.</p></div>,
+    keyPoints: ["Divide-and-conquer yields the recurrence T(n) = a·T(n/b) + f(n)", "The Master Theorem compares f(n) to the watershed n^(log_b a)", "Three cases: leaves dominate, levels balanced (extra log n), or root dominates", "Mergesort is Θ(n log n), binary search Θ(log n), Karatsuba n^1.585, Strassen n^2.807", "It fails on subtractive, uneven, or gap recurrences — use recursion trees or Akra-Bazzi"],
+  },
+  "data-structures-algorithms:Dynamic Programming": {
+    oneLine: "Dynamic programming turns an exponential recursion into a polynomial one whenever a problem has overlapping subproblems and optimal substructure, by computing each distinct subproblem a single time and reusing the stored result everywhere it reappears.",
+    Diagram: dsaDiagrams["Dynamic Programming"],
+    analogy: { title: "Like a jigsaw you never assemble twice", text: "Finishing a giant puzzle, naive recursion keeps rebuilding the same corner from scratch over and over. DP builds each chunk once, writes it into a table, and just glances at it forever after." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>DP applies when two conditions hold. First, <strong>overlapping subproblems</strong>: naive recursion re-solves the same smaller instances — naive Fibonacci recomputes <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>fib(3)</code> exponentially often — so caching collapses the work. Second, <strong>optimal substructure</strong>: an optimal whole is built from optimal parts. <strong>Memoization</strong> (top-down) caches each recursive result, while <strong>tabulation</strong> (bottom-up) fills a table from base cases in dependency order.</p><p style={{margin:0}}>The craft is two definitions: the <strong>state</strong> (the minimal parameters identifying a subproblem) and the <strong>transition</strong> (the recurrence). 0/1 knapsack is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>(item index, remaining capacity)</code>; LCS and edit distance are positions in two strings. Often you can drop <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(n·m)</code> space to <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>Θ(m)</code> by keeping recent slices. Watch out: omitting a parameter the subproblem depends on — keying knapsack on item index but not capacity — corrupts the cache and yields wrong answers, as does filling in an order where a dependency isn't ready.</p></div>,
+    keyPoints: ["DP needs both overlapping subproblems and optimal substructure", "Memoization (top-down cache) and tabulation (bottom-up fill) are equivalent approaches", "The craft is defining the state and the transition recurrence", "Knapsack drops from Θ(2ⁿ) to Θ(n·W); many tables shrink to one or two rows of space", "An incomplete state key or wrong fill order produces wrong answers"],
+  },
+  "data-structures-algorithms:Greedy Algorithms": {
+    oneLine: "A greedy algorithm builds an answer by repeatedly taking the best-looking option right now and never reconsidering it — fast and simple, but provably optimal only when the problem has the greedy-choice property; without it greedy returns a fast wrong answer and you fall back to DP.",
+    Diagram: dsaDiagrams["Greedy Algorithms"],
+    analogy: { title: "Like filling a plate at a buffet", text: "You always grab the most appealing dish in front of you and never put anything back. When the buffet is arranged so each best grab leaves the best remaining options, you build the perfect meal in one pass; otherwise the big shrimp now costs you two lobsters later." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>Where DP compares sub-solutions before committing, a greedy algorithm <strong>commits immediately</strong>: each step makes the locally optimal choice and never backtracks. It is correct only with two properties. The <strong>greedy-choice property</strong> means a locally optimal choice is part of some global optimum, and <strong>optimal substructure</strong> means the rest combines once that choice is fixed. When both hold, an <strong>exchange argument</strong> proves correctness and greedy beats DP by skipping the comparison entirely.</p><p style={{margin:0}}>The criterion must be right: activity selection is optimal sorting by earliest <strong>finish</strong> time, but earliest start or shortest duration picks fewer. Huffman coding, fractional knapsack, Dijkstra, Prim, and Kruskal are all greedy. Watch out: the property genuinely fails for others — 0/1 knapsack cannot take fractions so the greedy ratio overcommits, and coin change for a non-canonical set like making 6 from <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>{'{1, 3, 4}'}</code> grabs a 4 and finishes at three coins when two threes would do; verify the property before trusting the speed, and reach for DP when it is absent.</p></div>,
+    keyPoints: ["Greedy commits to the locally optimal choice each step and never backtracks", "Correct only with the greedy-choice property plus optimal substructure", "Prove correctness with an exchange argument or matroid theory", "Activity selection by earliest finish, Huffman, fractional knapsack, Dijkstra/Prim/Kruskal are greedy-safe", "0/1 knapsack and non-canonical coin change fail greedy and need DP"],
+  },
+  "data-structures-algorithms:Probabilistic Structures": {
+    oneLine: "Two structures buy speed or space by trading away a sliver of certainty: a skip list layers express lanes over a sorted list for expected O(log n) search without tree rotations, and a Bloom filter packs set membership into a tiny bit array that never reports a false negative but occasionally a false positive.",
+    Diagram: dsaDiagrams["Probabilistic Structures"],
+    analogy: { title: "Like express lanes and a smudgy guest list", text: "A skip list adds sparse express lanes over a sorted list so you leap over big stretches before dropping down near your target. A Bloom filter is a guest list so compressed that a 'no' is always trustworthy but a 'yes' might be a stranger who happens to match." },
+    body: <div style={PROSE}><p style={{margin:"0 0 1rem"}}>A <strong>skip list</strong> is a randomized alternative to a balanced tree: a sorted linked list with express lanes where each node is promoted to the next level with probability <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>p</code> (usually 1/2). Searching starts top-left, moves right until the next node would overshoot, then drops a level, giving <strong>expected</strong> <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>O(log n)</code> with no rotations. Redis sorted sets, the RocksDB memtable, and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>ConcurrentSkipListMap</code> all use them.</p><p style={{margin:0}}>A <strong>Bloom filter</strong> is a bit array of <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>m</code> bits plus <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>k</code> hash functions; inserting sets the k bits, querying checks them. Any 0 bit means <strong>definitely not present</strong> — no false negatives — while all-1 means <strong>probably present</strong>, the false positive coming from bits set by other elements. Optimal sizing is <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>m = −n·ln p / (ln 2)²</code> bits and <code style={{background:"var(--paper-2)",padding:"1px 6px",borderRadius:4,fontSize:"0.9em"}}>k = (m/n)·ln 2</code> hashes. Watch out: a positive can be a false positive, so treat it as 'maybe, verify against the source of truth' — only the negative answer is guaranteed; and never delete by clearing bits, since shared bits would corrupt other keys — use a counting Bloom filter instead.</p></div>,
+    keyPoints: ["A skip list layers express lanes over a sorted list for expected O(log n) search, insert, delete", "Skip lists need no rotations and power Redis sorted sets, RocksDB memtables, ConcurrentSkipListMap", "A Bloom filter uses m bits and k hashes; a 0 bit means definitely absent (no false negatives)", "An all-ones lookup means probably present — false positives are tunable via m = −n·ln p/(ln 2)² and k = (m/n)·ln 2", "Treat a Bloom 'present' as 'maybe, verify'; plain Bloom filters cannot delete — use a counting variant"],
+  },
+
 };
 
 // ─── ConceptBody ──────────────────────────────────────────────────────────────
 
+// Renders inline `code` spans and *emphasis* from the source markdown text.
+function renderInline(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const re = /`([^`]+)`|\*([^*]+)\*/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m[1] != null) {
+      parts.push(
+        <code key={k++} style={{ background: "var(--paper-2)", padding: "1px 6px", borderRadius: 4, fontSize: "0.9em" }}>{m[1]}</code>
+      );
+    } else {
+      parts.push(<em key={k++}>{m[2]}</em>);
+    }
+    last = re.lastIndex;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+const EXTRAS_HEADING: React.CSSProperties = {
+  fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em",
+  textTransform: "uppercase", marginBottom: 12,
+};
+
+// Renders the structured "extras" sections (complexity tables, pros/cons,
+// failure modes, code examples, etc.) ported from the source encyclopedias.
+function ExtraSectionView({ section, h }: { section: ConceptExtras["sections"][number]; h: Hue }) {
+  const heading = <div style={{ ...EXTRAS_HEADING, color: h.ink }}>{section.heading}</div>;
+
+  if (section.kind === "list") {
+    return (
+      <div style={{ marginTop: "2rem" }}>
+        {heading}
+        <ul style={{ margin: 0, paddingLeft: "1.3rem", display: "flex", flexDirection: "column", gap: 7 }}>
+          {section.items.map((it, i) => (
+            <li key={i} style={{ color: "var(--ink)", fontSize: "0.96rem", lineHeight: 1.55 }}>{renderInline(it)}</li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  if (section.kind === "deflist") {
+    return (
+      <div style={{ marginTop: "2rem" }}>
+        {heading}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {section.items.map((p, i) => (
+            <div key={i} style={{ borderLeft: `3px solid ${h.base}`, background: "var(--paper-2)", borderRadius: 8, padding: "12px 16px" }}>
+              <div style={{ fontWeight: 700, color: "var(--ink)", fontSize: "0.96rem", marginBottom: 4 }}>{renderInline(p.term)}</div>
+              <div style={{ color: "var(--ink-2)", fontSize: "0.92rem", lineHeight: 1.6 }}>{renderInline(p.body)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (section.kind === "table") {
+    const cell: React.CSSProperties = { padding: "9px 14px", color: "var(--ink-2)", fontFamily: "ui-monospace, monospace", whiteSpace: "nowrap" };
+    return (
+      <div style={{ marginTop: "2rem" }}>
+        {heading}
+        <div style={{ overflowX: "auto", border: "1px solid var(--line)", borderRadius: "calc(var(--radius, 22px) * 0.5)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+            <thead>
+              <tr>
+                {section.cols.map((c, i) => (
+                  <th key={i} style={{ textAlign: "left", padding: "10px 14px", background: "var(--paper-2)", color: "var(--ink-2)", fontWeight: 700, fontSize: "0.76rem", letterSpacing: "0.02em", borderBottom: "1px solid var(--line)" }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {section.rows.map((r, i) => (
+                <tr key={i} style={{ borderTop: i ? "1px solid var(--line-soft)" : "none" }}>
+                  {r.map((c, j) => (
+                    <td key={j} style={j === 0 ? { padding: "9px 14px", color: "var(--ink)", fontWeight: 600 } : cell}>{renderInline(c)}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  if (section.kind === "code") {
+    return (
+      <div style={{ marginTop: "2rem" }}>
+        {heading}
+        <pre style={{ margin: 0, background: "#1e1e1e", color: "#d4d4d4", padding: "16px 18px", borderRadius: "calc(var(--radius, 22px) * 0.5)", overflowX: "auto", fontSize: "0.82rem", lineHeight: 1.6, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" }}>
+          <code>{section.code}</code>
+        </pre>
+      </div>
+    );
+  }
+
+  // prose
+  return (
+    <div style={{ marginTop: "2rem" }}>
+      {heading}
+      <p style={{ margin: 0, color: "var(--ink)", fontSize: "0.98rem", lineHeight: 1.65 }}>{renderInline(section.text)}</p>
+    </div>
+  );
+}
+
+function ConceptExtrasBlock({ data, h }: { data: ConceptExtras; h: Hue }) {
+  return (
+    <>
+      {data.sections.map((s, i) => (
+        <ExtraSectionView key={i} section={s} h={h} />
+      ))}
+    </>
+  );
+}
+
 function ConceptBody({ topic, subtopic }: { topic: Topic; subtopic: Subtopic }) {
   const key = `${topic.id}:${subtopic.name}`;
   const f = FEATURED[key];
+  const extras = conceptExtras[key];
   const h = topic.hue;
 
   if (f) {
@@ -2919,6 +2709,7 @@ function ConceptBody({ topic, subtopic }: { topic: Topic; subtopic: Subtopic }) 
             ))}
           </div>
         </div>
+        {extras && <ConceptExtrasBlock data={extras} h={h} />}
       </div>
     );
   }
@@ -2941,6 +2732,7 @@ function ConceptBody({ topic, subtopic }: { topic: Topic; subtopic: Subtopic }) 
         <h3 style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--ink)", margin: "1.4rem 0 0.5rem" }}>Why it matters</h3>
         <p style={{ margin: 0 }}>Understanding this gives you a sharper mental model for the trade-offs around it — and helps you recognise where it shows up in real systems.</p>
       </div>
+      {extras && <ConceptExtrasBlock data={extras} h={h} />}
     </div>
   );
 }

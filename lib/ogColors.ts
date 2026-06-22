@@ -38,6 +38,11 @@ const palettes: Record<string, OgPalette> = {
     accent: "#c2410c", accentSoft: "#f97316",
     pill: "#7c2d12", pillText: "#fff7ed",
   },
+  "from-red-100 to-red-200": {
+    gradFrom: "#fee2e2", gradTo: "#fecaca",
+    accent: "#b91c1c", accentSoft: "#ef4444",
+    pill: "#7f1d1d", pillText: "#fef2f2",
+  },
 };
 
 export function getPalette(tailwindColor: string): OgPalette {

@@ -6,7 +6,7 @@ export default function Home() {
   const totalSubtopics = topics.reduce((sum, t) => sum + t.subtopics.length, 0);
 
   return (
-    <div style={{ maxWidth: 1120, margin: "0 auto", padding: "0 28px", paddingTop: 56, paddingBottom: 80 }}>
+    <div style={{ maxWidth: 1120, margin: "0 auto", padding: "clamp(32px, 8vw, 56px) clamp(16px, 5vw, 28px) clamp(48px, 12vw, 80px)" }}>
       {/* Hero */}
       <section style={{ maxWidth: 820, margin: "0 auto 64px", textAlign: "center" }}>
         <div className="anim-float" style={{ animationDelay: "0.02s" }}>
@@ -43,9 +43,9 @@ export default function Home() {
 
         <div className="anim-float" style={{
           display: "flex",
-          gap: 12,
+          gap: "clamp(8px, 2vw, 12px)",
           justifyContent: "center",
-          marginTop: 34,
+          marginTop: "clamp(24px, 5vw, 34px)",
           flexWrap: "wrap",
           animationDelay: "0.2s",
         }}>
@@ -73,7 +73,7 @@ export default function Home() {
 
       {/* Guide grid */}
       <section id="guides" style={{ scrollMarginTop: 90 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 22, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "clamp(16px, 3vw, 22px)", flexWrap: "wrap", gap: "clamp(6px, 1.5vw, 8px)" }}>
           <h2 className="font-display" style={{ fontSize: "2.2rem", color: "var(--ink)", margin: 0 }}>
             The guides
           </h2>

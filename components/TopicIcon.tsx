@@ -67,6 +67,16 @@ export default function TopicIcon({ id, size = 24, strokeWidth = 2.1 }: Props) {
           <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" />
         </svg>
       );
+    case "data-structures-algorithms":
+      return (
+        <svg {...p}>
+          <circle cx="12" cy="4.5" r="2.2" />
+          <circle cx="5.5" cy="13" r="2.2" />
+          <circle cx="18.5" cy="13" r="2.2" />
+          <circle cx="14.5" cy="20" r="2.2" />
+          <path d="M10.4 6.2 7 11M13.6 6.2 17 11M17.3 14.7l-1.6 3.4" />
+        </svg>
+      );
     default:
       return (
         <svg {...p}>

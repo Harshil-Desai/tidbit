@@ -85,19 +85,19 @@ interface Props {
 
 export default function TopicViewer({ topic }: Props) {
   return (
-    <div style={{ maxWidth: 1120, margin: "0 auto", padding: "36px 28px 80px", display: "flex", flexDirection: "column", gap: 32 }}>
+    <div style={{ maxWidth: 1120, margin: "0 auto", padding: "clamp(24px, 6vw, 36px) clamp(16px, 5vw, 28px) clamp(48px, 12vw, 80px)", display: "flex", flexDirection: "column", gap: "clamp(20px, 4vw, 32px)" }}>
       {/* Breadcrumb + controls */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "clamp(12px, 3vw, 16px)", flexWrap: "wrap" }}>
         <Breadcrumb topic={topic} />
         <ShareButton topicSlug={topic.id} />
       </div>
 
       {/* Guide header */}
-      <div className="anim-float" style={{ display: "flex", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
+      <div className="anim-float" style={{ display: "flex", gap: "clamp(16px, 4vw, 24px)", alignItems: "flex-start", flexWrap: "wrap" }}>
         <div style={{
-          width: 72,
-          height: 72,
-          borderRadius: 20,
+          width: "clamp(56px, 12vw, 72px)",
+          height: "clamp(56px, 12vw, 72px)",
+          borderRadius: "clamp(16px, 3vw, 20px)",
           background: topic.hue.base,
           color: "#fff",
           display: "flex",

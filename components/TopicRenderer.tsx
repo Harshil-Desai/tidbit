@@ -66,8 +66,8 @@ function ConceptRow({ topic, name, description, conceptId, index, isLast, onOpen
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 16,
-          padding: "16px 18px",
+          gap: "clamp(12px, 2vw, 16px)",
+          padding: "clamp(12px, 3vw, 16px) clamp(12px, 3vw, 18px)",
           borderRadius: "calc(var(--radius, 22px) * 0.6)",
           cursor: "pointer",
           background: hover ? "var(--paper-2)" : "transparent",
@@ -111,7 +111,7 @@ function ConceptRow({ topic, name, description, conceptId, index, isLast, onOpen
         {/* Favorite — stop propagation */}
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{ flexShrink: 0, opacity: hover ? 1 : 0, transition: "opacity 0.15s ease" }}
+          style={{ flexShrink: 0 }}
         >
           <FavoriteButton
             size="sm"

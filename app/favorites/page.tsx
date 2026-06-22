@@ -64,7 +64,7 @@ function ConceptRow({ fav }: { fav: Favorite }) {
     : `/topics/${fav.topicSlug}`;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", transition: "background 0.12s ease" }}
+    <div style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 2vw, 12px)", padding: "clamp(10px, 2vw, 14px) clamp(12px, 3vw, 18px)", transition: "background 0.12s ease" }}
       onMouseEnter={(e) => (e.currentTarget.style.background = "var(--paper-2)")}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
@@ -98,7 +98,7 @@ function TopicGroup({ group }: { group: Group }) {
 
   return (
     <div className="tidbit-card" style={{ overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
-      <div style={{ background: hue.soft, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ background: hue.soft, padding: "clamp(10px, 2vw, 14px) clamp(12px, 3vw, 18px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "clamp(8px, 2vw, 12px)", flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: hue.base, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <TopicIcon id={group.topicSlug} size={18} strokeWidth={2.2} />
@@ -140,9 +140,9 @@ export default function FavoritesPage() {
   }, [favorites]);
 
   return (
-    <div style={{ maxWidth: 820, margin: "0 auto", padding: "36px 28px 80px" }}>
+    <div style={{ maxWidth: 820, margin: "0 auto", padding: "clamp(24px, 6vw, 36px) clamp(16px, 5vw, 28px) clamp(48px, 12vw, 80px)" }}>
       {/* Page header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "clamp(10px, 2vw, 14px)", marginBottom: 8, flexWrap: "wrap" }}>
         <div style={{ width: 56, height: 56, borderRadius: 18, background: "var(--brand-soft)", color: "var(--brand)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--brand)" stroke="none">
             <path d="M12 20.5C12 20.5 3.5 15.5 3.5 9.2 3.5 6.3 5.8 4 8.6 4c1.7 0 3.2.9 4 2.2C13.2 4.9 14.7 4 16.4 4c2.8 0 5.1 2.3 5.1 5.2 0 6.3-8.5 11.3-8.5 11.3z" />
@@ -160,7 +160,7 @@ export default function FavoritesPage() {
         </div>
 
         {hydrated && total > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "clamp(6px, 1vw, 8px)", flexWrap: "wrap", width: "100%" }}>
             <button
               onClick={exportJSON}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--radius-pill)", padding: "8px 14px", fontSize: "0.82rem", fontWeight: 600, color: "var(--ink-2)", cursor: "pointer" }}

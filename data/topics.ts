@@ -13,6 +13,7 @@ export type Topic = {
   color: string;
   hue: TopicHue;
   subtopics: Subtopic[];
+  comingSoon?: boolean;
 };
 
 export const topics: Topic[] = [
@@ -216,5 +217,86 @@ export const topics: Topic[] = [
       { name: "Failure Mode Catalog", description: "A catalogue of the most common ways agents fail and the mitigation for each." },
       { name: "Engineering Principles That Never Go Away", description: "Idempotency, least privilege, fail-fast, and the other fundamentals that survive every paradigm shift." },
     ],
+  },
+  {
+    id: "data-structures-algorithms",
+    title: "Data Structures & Algorithms",
+    description:
+      "Foundational CS: arrays, linked lists, trees, graphs, sorting, searching, and complexity analysis. The algorithms every engineer needs to know.",
+    icon: "🌳",
+    color: "from-red-100 to-red-200",
+    hue: { base: "#dc2626", ink: "#a81919", soft: "#fee2e2" },
+    subtopics: [
+      { name: "Asymptotic Analysis", description: "How Big-O, Big-Θ, and Big-Ω measure the way an algorithm's work grows with input size, ignoring constants and hardware so you compare scaling rather than stopwatch times." },
+      { name: "The Machine Model", description: "Why cache hierarchy and memory locality mean an algorithm with fewer operations can still lose to one that touches memory in a cache-friendly order." },
+      { name: "Arrays & Dynamic Arrays", description: "Contiguous memory gives O(1) indexing, and the doubling trick lets a dynamic array fake unlimited growth by reallocating and copying when it fills." },
+      { name: "Linked Lists", description: "Trading the array's contiguous block for scattered nodes joined by pointers: no O(1) indexing or cache friendliness, but O(1) splicing wherever you already hold a reference." },
+      { name: "Stacks, Queues, Deques & Ring Buffers", description: "Access disciplines layered over an array or list, and the ring buffer trick that makes a queue O(1) at both ends without shifting elements." },
+      { name: "Hash Functions & Hash Tables", description: "An array plus a function that turns any key into a slot number, making lookups a single address computation as long as the table stays well-spread and empty enough." },
+      { name: "Collision Resolution", description: "What happens when two keys map to the same bucket: chaining hangs a small list off the bucket, while open addressing probes for the next free slot." },
+      { name: "Binary Trees & Traversals", description: "Nodes with up to two children where height drives performance, and how pre-, in-, post-order, and level-order walks decide the order you see the data." },
+      { name: "Binary Search Trees", description: "The left-smaller / right-larger rule turns search into a halving descent, but the wrong insertion order quietly collapses the tree into a slow chain." },
+      { name: "Self-Balancing Trees", description: "AVL and red-black trees enforce a height bound after every update and repair violations with rotations: local, constant-time pointer reshuffles that preserve order." },
+      { name: "B-Trees & B+ Trees", description: "Search trees redesigned around the cost of a disk seek, packing hundreds of keys per page so huge datasets stay three or four levels tall." },
+      { name: "Heaps & Priority Queues", description: "A complete tree where every parent out-ranks its children, stored pointer-free in a flat array for O(1) access to the best element and O(log n) insert and remove." },
+      { name: "Tries & Radix Trees", description: "Storing strings character-by-character down shared paths for O(k) lookups and free prefix queries, with radix trees compressing single-child chains to save memory." },
+      { name: "Segment Trees & Fenwick Trees", description: "Answering range sum, min, and max queries on a changing array in O(log n) by precomputing aggregates over a tree of ranges." },
+      { name: "Comparison Sorts", description: "Why any sort that only compares pairs is stuck at Ω(n log n), and how quicksort, mergesort, and heapsort differ in how they split the work and what they trade." },
+      { name: "Linear-Time Sorts", description: "Counting, radix, and bucket sort run in O(n) by reading keys directly instead of comparing them, which only works when the keys are structured." },
+      { name: "Production Sorts", description: "The hybrid sorts in real standard libraries: Timsort exploits pre-sorted runs, while Introsort runs quicksort but bails to heapsort to dodge the O(n²) spiral." },
+      { name: "Graph Representations", description: "How storing edges as a matrix or a list decides which questions are cheap, and why adjacency lists win on the sparse graphs that dominate the real world." },
+      { name: "Graph Traversal", description: "BFS and DFS both visit every reachable vertex in O(V + E) and differ by one thing — a queue versus a stack — turning flooding into dive-and-backtrack." },
+      { name: "Shortest Paths", description: "Edge relaxation underpins every shortest-path algorithm; Dijkstra, Bellman-Ford, and A* differ only in the order and conditions under which they relax edges." },
+      { name: "Minimum Spanning Trees", description: "Connecting every vertex with V−1 edges of least total weight via two greedy approaches — Kruskal adds the cheapest safe edge anywhere, Prim grows one tree outward." },
+      { name: "Union-Find", description: "A disjoint-set forest that answers 'same group?' and 'merge groups' in near-constant time using union by rank and path compression." },
+      { name: "Divide & Conquer and the Master Theorem", description: "Splitting a problem into smaller copies of itself, and using T(n) = a·T(n/b) + f(n) and the Master Theorem to find where the work piles up." },
+      { name: "Dynamic Programming", description: "Turning an exponential recursion into a polynomial one by computing each overlapping subproblem once and reusing its stored result." },
+      { name: "Greedy Algorithms", description: "Building an answer by always taking the best-looking option now, provably optimal only when the problem has the greedy-choice property." },
+      { name: "Probabilistic Structures", description: "Skip lists layer express lanes over a sorted list for expected O(log n) search, and Bloom filters pack membership into a tiny bit array with no false negatives." },
+    ],
+  },
+  {
+    id: "networking-protocols",
+    title: "Networking & Protocols",
+    description:
+      "How the internet works: TCP/IP, DNS, HTTP/2, QUIC, routing, packet switching, and the protocols that move data across the globe.",
+    icon: "🌐",
+    color: "from-amber-100 to-amber-200",
+    hue: { base: "#d97706", ink: "#b45309", soft: "#fef3c7" },
+    subtopics: [],
+    comingSoon: true,
+  },
+  {
+    id: "concurrency-parallelism",
+    title: "Concurrency & Parallelism",
+    description:
+      "Threads, goroutines, async/await, green threads, locks, deadlocks, and the patterns for building systems that do multiple things at once safely.",
+    icon: "⚡",
+    color: "from-yellow-100 to-yellow-200",
+    hue: { base: "#eab308", ink: "#b8860b", soft: "#fef3c7" },
+    subtopics: [],
+    comingSoon: true,
+  },
+  {
+    id: "kubernetes-containers",
+    title: "Kubernetes & Containerization",
+    description:
+      "Docker, container orchestration, deployments, service discovery, networking, and production container platforms at scale.",
+    icon: "🐳",
+    color: "from-blue-400 to-blue-600",
+    hue: { base: "#0284c7", ink: "#075985", soft: "#e0f2fe" },
+    subtopics: [],
+    comingSoon: true,
+  },
+  {
+    id: "security-cryptography",
+    title: "Security & Cryptography",
+    description:
+      "SSL/TLS, encryption, hashing, authentication, authorization, common vulnerabilities, and the cryptography you need to build secure systems.",
+    icon: "🔒",
+    color: "from-rose-100 to-rose-200",
+    hue: { base: "#e11d48", ink: "#a9153d", soft: "#ffe4e6" },
+    subtopics: [],
+    comingSoon: true,
   },
 ];
